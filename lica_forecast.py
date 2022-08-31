@@ -13,6 +13,7 @@ import seaborn as sns
 from io import BytesIO
 import openpyxl, requests
 import matplotlib.pyplot as plt
+import plotly.graph_objs as go
 from datetime import date, timedelta
 import streamlit as st
 
@@ -240,10 +241,59 @@ def plot_forecast(data, forecast, param, end_train, end_pred):
     #ax.plot(data_test.index[-16:], data_test[param].iloc[-16:], linewidth=2)
     ax.fill_between(forecast['ds'], forecast['yhat_lower'], forecast['yhat_upper'], facecolor=color_shade_list[0], alpha=0.5)
     ax.legend(prop={'size': 15})
+    ax.set_xlabel('Date')
+    ax.set_ylabel(param)
     ax.set_xlim([dataset.index.min(),forecast['ds'].max()])
     ax.set_ylim([0, forecast['yhat_upper'].max()])
     plt.xticks(rotation=45)
     st.pyplot(fig)
+    
+def plot_forecast_(data, forecast, param, end_train, end_pred):
+    
+    dataset = data[data.index.isin(forecast.set_index('ds').index)]
+    
+    fig = go.Figure([
+                go.Scatter(
+                    name='Actual',
+                    x=dataset.index,
+                    y=dataset[param],
+                    mode='markers',
+                    line=dict(color='rgb(0, 0, 0)'),
+                ),
+                go.Scatter(
+                    name='yhat',
+                    x=forecast['ds'],
+                    y=forecast['yhat'],
+                    mode='lines',
+                    line=dict(color='rgb(31, 119, 180)'),
+                ),
+                go.Scatter(
+                    name='yhat_upper',
+                    x=forecast['ds'],
+                    y=forecast['yhat_upper'],
+                    mode='lines',
+                    marker=dict(color="#444"),
+                    line=dict(width=0),
+                    showlegend=False
+                ),
+                go.Scatter(
+                    name='yhat_lower',
+                    x=forecast['ds'],
+                    y=forecast['yhat_upper'],
+                    marker=dict(color="#444"),
+                    line=dict(width=0),
+                    mode='lines',
+                    fillcolor='rgba(68, 68, 68, 0.3)',
+                    fill='tonexty',
+                    showlegend=False
+                )
+            ])
+    
+    fig.update_layout(
+        yaxis_title=param,
+        hovermode="x")
+    
+    st.plotly_chart(fig, use_container_width=True)
 
 # dictionary for to for setting prediction horizon from date today
 predict_horizon_dict = {'7 days': 7,
@@ -326,4 +376,4 @@ if __name__ == '__main__':
     for pred in ['yhat', 'yhat_lower', 'yhat_upper']:
         forecast.loc[:, pred] = forecast.loc[:, pred].apply(lambda x: 0 if x < 0 else x)
     # plot
-    plot_forecast(traffic_data, forecast, param, end_train, end_predict)
+    plot_forecast_(traffic_data, forecast, param, end_train, end_predict)
