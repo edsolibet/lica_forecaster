@@ -6,7 +6,6 @@ streamlit-aggrid
 scikit-learn
 seaborn
 prophet
-itertools
 requests
 openpyxl
 
