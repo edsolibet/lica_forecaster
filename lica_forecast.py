@@ -258,7 +258,7 @@ def plot_forecast_(data, forecast, param, end_train, end_pred):
                     x=dataset.index,
                     y=dataset[param],
                     mode='markers',
-                    line=dict(color='rgb(0, 0, 0)'),
+                    marker=dict(color="#444"),
                 ),
                 go.Scatter(
                     name='yhat',
@@ -279,7 +279,7 @@ def plot_forecast_(data, forecast, param, end_train, end_pred):
                 go.Scatter(
                     name='yhat_lower',
                     x=forecast['ds'],
-                    y=forecast['yhat_upper'],
+                    y=forecast['yhat_lower'],
                     marker=dict(color="#444"),
                     line=dict(width=0),
                     mode='lines',
