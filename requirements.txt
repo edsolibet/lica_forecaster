@@ -1,0 +1,12 @@
+streamlit>=1.12.0
+plotly
+matplotlib
+selenium==4.2.0
+streamlit-aggrid
+scikit-learn
+seaborn
+prophet
+itertools
+requests
+openpyxl
+
