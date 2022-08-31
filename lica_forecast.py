@@ -122,7 +122,7 @@ if __name__ == '__main__':
         param  = st.sidebar.selectbox('Metric to Forecast',
                               ('sessions', 'website bookings'))
     
-    traffic_data = get_data(platform)
+    traffic_data = get_data()
     start_train = '2022-03-01'
     end_train = traffic_data.index.max().strftime('%Y-%m-%d')
     end_test = '2022-09-15'
