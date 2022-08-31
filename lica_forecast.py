@@ -284,7 +284,7 @@ def plot_forecast_(data, forecast, param, end_train, end_pred):
                     marker=dict(color="#444"),
                     line=dict(width=0),
                     mode='lines',
-                    fillcolor='rgba(68, 68, 68, 0.3)',
+                    fillcolor='rgba(176, 225, 230, 0.3)',
                     fill='tonexty',
                     showlegend=False
                 )
@@ -294,7 +294,9 @@ def plot_forecast_(data, forecast, param, end_train, end_pred):
         yaxis_title=param,
         plot_bgcolor='rgb(255,255,255)',
         hovermode="x")
-    
+    # Change grid color and axis colors
+    fig.update_xaxes(showline=True, linewidth=2, linecolor='black', gridcolor='Red')
+    fig.update_yaxes(showline=True, linewidth=2, linecolor='black', gridcolor='Red')
     st.plotly_chart(fig, use_container_width=True)
 
 # dictionary for to for setting prediction horizon from date today
