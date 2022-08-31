@@ -258,14 +258,15 @@ def plot_forecast_(data, forecast, param, end_train, end_pred):
                     x=dataset.index,
                     y=dataset[param],
                     mode='markers',
-                    marker=dict(color="#444"),
+                    marker=dict(color='rgb(0, 0, 0)',
+                                size=4),
                 ),
                 go.Scatter(
                     name='yhat',
                     x=forecast['ds'],
                     y=forecast['yhat'],
                     mode='lines',
-                    line=dict(color='rgb(31, 119, 180)'),
+                    line=dict(color='rgb(30, 144, 255)'),
                 ),
                 go.Scatter(
                     name='yhat_upper',
@@ -291,6 +292,7 @@ def plot_forecast_(data, forecast, param, end_train, end_pred):
     
     fig.update_layout(
         yaxis_title=param,
+        plot_bgcolor='rgba(0,0,0,0)',
         hovermode="x")
     
     st.plotly_chart(fig, use_container_width=True)
