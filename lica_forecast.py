@@ -292,7 +292,7 @@ def plot_forecast_(data, forecast, param, end_train, end_pred):
     
     fig.update_layout(
         yaxis_title=param,
-        plot_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgb(255,255,255)',
         hovermode="x")
     
     st.plotly_chart(fig, use_container_width=True)
