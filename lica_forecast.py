@@ -258,8 +258,8 @@ def plot_forecast_(data, forecast, param, end_train, end_pred):
                     x=dataset.index,
                     y=dataset[param],
                     mode='markers',
-                    marker=dict(color='rgb(0, 0, 0)',
-                                size=4),
+                    marker=dict(color='rgb(105, 105, 105)',
+                                size=6),
                 ),
                 go.Scatter(
                     name='yhat',
@@ -273,7 +273,7 @@ def plot_forecast_(data, forecast, param, end_train, end_pred):
                     x=forecast['ds'],
                     y=forecast['yhat_upper'],
                     mode='lines',
-                    marker=dict(color="#444"),
+                    marker=dict(color='rgba(176, 225, 230, 0.3)'),
                     line=dict(width=0),
                     showlegend=False
                 ),
@@ -292,11 +292,10 @@ def plot_forecast_(data, forecast, param, end_train, end_pred):
     
     fig.update_layout(
         yaxis_title=param,
-        plot_bgcolor='rgb(255,255,255)',
         hovermode="x")
     # Change grid color and axis colors
-    fig.update_xaxes(showline=True, linewidth=2, linecolor='black', gridcolor='Red')
-    fig.update_yaxes(showline=True, linewidth=2, linecolor='black', gridcolor='Red')
+    fig.update_xaxes(showline=True, linewidth=2, linecolor='black', gridcolor='#696969')
+    fig.update_yaxes(showline=True, linewidth=2, linecolor='black', gridcolor='#696969')
     st.plotly_chart(fig, use_container_width=True)
 
 # dictionary for to for setting prediction horizon from date today
