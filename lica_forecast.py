@@ -280,7 +280,7 @@ def plot_forecast_(data, forecast, param, end_train, end_pred):
                     x=dataset.index,
                     y=dataset[param],
                     mode='markers',
-                    marker=dict(color='rgb(255, 255, 255)',
+                    marker=dict(color='rgb(0, 0, 0)',
                                 size=6),
                 ),
                 go.Scatter(
