@@ -401,7 +401,7 @@ if __name__ == '__main__':
     elif platform == 'Mechanigo.ph':
         param  = st.sidebar.selectbox('Metric to Forecast',
                               ('sessions', 'website bookings'))
-    param = 'purchases_website'
+    param = 'purchases_backend_website'
     predict_horizon = st.sidebar.selectbox('Prediction horizon:',
                                            ('7 days', '15 days'))
     
