@@ -397,11 +397,10 @@ if __name__ == '__main__':
     
     if platform == 'Gulong.ph':
         param  = st.sidebar.selectbox('Metric to Forecast',
-                              ('sessions', 'website purchases'))
+                              ('sessions', 'purchases_backend_website'))
     elif platform == 'Mechanigo.ph':
         param  = st.sidebar.selectbox('Metric to Forecast',
                               ('sessions', 'website bookings'))
-    param = 'purchases_backend_website'
     predict_horizon = st.sidebar.selectbox('Prediction horizon:',
                                            ('7 days', '15 days'))
     
@@ -420,7 +419,6 @@ if __name__ == '__main__':
     start_train = '2022-03-01'
     end_train = traffic_data.index.max().strftime('%Y-%m-%d')
     today = date.today().strftime('%Y-%m-%d')
-    predict_horizon = '15 days'
     end_predict = (pd.to_datetime(today) 
                    + timedelta(days=predict_horizon_dict[predict_horizon])).strftime('%Y-%m-%d')
     data_train = traffic_data.loc[start_train: end_train, :]
@@ -462,6 +460,8 @@ if __name__ == '__main__':
     forecast = m.predict(future)
     for pred in ['yhat', 'yhat_lower', 'yhat_upper']:
         forecast.loc[:, pred] = forecast.loc[:, pred].apply(lambda x: 0 if x < 0 else x)
+    
+    
     
     y_true = traffic_data.loc['2022-08-01':'2022-08-28', param].fillna(0)
     y_pred = forecast.set_index('ds').loc['2022-08-01':'2022-08-28', 'yhat'].fillna(0)
