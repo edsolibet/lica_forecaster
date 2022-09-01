@@ -230,7 +230,7 @@ def get_gtrend_data(kw_list, start_train, end_train):
                             gprop='', 
                             sleep=0)
     historicaldf.index = historicaldf.index.strftime('%Y-%m-%d')
-    return historicaldf[kw_list].reset_index().groupby('date').mean()
+    return historicaldf[kw_list].reset_index().groupby('date').mean().fillna(0)
 
 def add_regressors(model, temp_df, future, exogs=None, time_diff=1, regs=None):
     
