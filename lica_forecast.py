@@ -280,7 +280,7 @@ def plot_forecast_(data, forecast, param, end_train, end_pred):
                     x=dataset.index,
                     y=dataset[param],
                     mode='markers',
-                    marker=dict(color='rgb(0, 0, 0)',
+                    marker=dict(color='rgb(255, 255, 255)',
                                 size=6),
                 ),
                 go.Scatter(
@@ -295,7 +295,7 @@ def plot_forecast_(data, forecast, param, end_train, end_pred):
                     x=forecast['ds'],
                     y=forecast['yhat_upper'],
                     mode='lines',
-                    marker=dict(color='rgba(176, 225, 230, 0.6)'),
+                    marker=dict(color='rgba(176, 225, 230, 0.3)'),
                     line=dict(width=0),
                     showlegend=False
                 ),
@@ -303,10 +303,10 @@ def plot_forecast_(data, forecast, param, end_train, end_pred):
                     name='yhat_lower',
                     x=forecast['ds'],
                     y=forecast['yhat_lower'],
-                    marker=dict(color="rgb(176, 225, 230, 0.6)"),
+                    marker=dict(color="rgb(176, 225, 230, 0.3)"),
                     line=dict(width=0),
                     mode='lines',
-                    fillcolor='rgba(176, 225, 230, 0.6)',
+                    fillcolor='rgba(176, 225, 230, 0.3)',
                     fill='tonexty',
                     showlegend=False
                 )
@@ -406,7 +406,8 @@ def calc_yhat(forecast, coefs, model):
 
 # dictionary for to for setting prediction horizon from date today
 predict_horizon_dict = {'7 days': 7,
-                        '15 days': 15}
+                        '15 days': 15,
+                        '30 days' : 30}
 
 if __name__ == '__main__':
     st.title('LICA Target Setting App')
@@ -484,10 +485,11 @@ if __name__ == '__main__':
         else:
             exogs = traffic_data.loc[start_train, exog_num_cols]
         m, temp_df, future = add_regressors(m, temp_df, future, exogs, time_diff, regs)
+    
     # fit model
     m.fit(temp_df)
-    
     forecast = m.predict(future)
+    
     for pred in ['yhat', 'yhat_lower', 'yhat_upper']:
         forecast.loc[:, pred] = forecast.loc[:, pred].apply(lambda x: 0 if x < 0 else x)
     
@@ -495,8 +497,6 @@ if __name__ == '__main__':
     y_pred = forecast.set_index('ds').loc['2022-08-01':'2022-08-28', 'yhat'].fillna(0)
     error = np.sqrt(mean_squared_error(y_true, y_pred))
     
-    # get regressor coefficients
-    regressor_coefs = regressor_coefficients(m).set_index('regressor')
     # plot
     plot_forecast_(traffic_data, forecast, param, end_train, end_predict)
     
@@ -506,4 +506,10 @@ if __name__ == '__main__':
     yhat_upper = round(forecast.iloc[-predict_horizon_dict[predict_horizon]:].yhat_upper.sum())
     st.dataframe(pd.DataFrame([[yhat, yhat_lower, yhat_upper]], columns=['yhat', 'yhat_lower', 'yhat_upper']))
     
+    # get regressor coefficients
+    if len(exog_num_cols) or len(regs.keys()):
+        regressor_coefs = regressor_coefficients(m).set_index('regressor')
+        
+    
+   
     
