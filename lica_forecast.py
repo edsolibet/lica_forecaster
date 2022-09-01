@@ -258,7 +258,7 @@ def plot_forecast_(data, forecast, param, end_train, end_pred):
                     x=dataset.index,
                     y=dataset[param],
                     mode='markers',
-                    marker=dict(color='rgb(105, 105, 105)',
+                    marker=dict(color='rgb(255, 255, 255)',
                                 size=6),
                 ),
                 go.Scatter(
@@ -281,7 +281,7 @@ def plot_forecast_(data, forecast, param, end_train, end_pred):
                     name='yhat_lower',
                     x=forecast['ds'],
                     y=forecast['yhat_lower'],
-                    marker=dict(color="#444"),
+                    marker=dict(color="rgb(176, 225, 230, 0.3)"),
                     line=dict(width=0),
                     mode='lines',
                     fillcolor='rgba(176, 225, 230, 0.3)',
@@ -297,6 +297,90 @@ def plot_forecast_(data, forecast, param, end_train, end_pred):
     fig.update_xaxes(showline=True, linewidth=2, linecolor='black', gridcolor='#696969')
     fig.update_yaxes(showline=True, linewidth=2, linecolor='black', gridcolor='#696969')
     st.plotly_chart(fig, use_container_width=True)
+
+
+def get_regressors(reg_list, level = None):
+    '''
+    Selects type of columns from forecaster dataframe
+    
+    Parameters
+    ----------
+    reg_list : list
+        forecast.columns
+    level : string or None
+        None for regular columns
+        'lower' or 'upper' for lower or upper value limits
+    
+    Returns
+    -------
+    list
+        list of desired regressors
+    
+    '''
+    col_list = list()
+    remove_list = ['ds', 'cap', 'floor', 'yhat', 'yhat_lower', 'yhat_upper']
+    if level == None:
+        for col in reg_list:
+            if '_lower' in col or '_upper' in col:
+                continue
+            else:
+                col_list.append(col)
+    else:
+        for col in reg_list:
+            if level in col:
+                col_list.append(col)
+            else:
+                continue
+    return [i for i in col_list if i not in remove_list]
+
+
+def calc_yhat(forecast, coefs, model):
+    '''
+    Calculate the forecasts from the regressor coefficients
+    
+    yhat = trend * (1 + holidays(t) + seasons(t) + regressor_comps(t) 
+                    + extra_regressors_multiplicative(t))
+
+    Parameters
+    ----------
+    forecast : dataframe
+        Predictions made by model
+    coefs : dataframe
+        Regressor coefficients, center
+        Input: regressor_coefficients(m).set_index('regressor')
+    model : model
+        fitted FB prophet model
+
+    Returns
+    -------
+    yhat : list
+        Calculated forecast
+
+    '''
+    
+    yhat = list()
+    reg_comps_list, holiday_list, seasons_list, tot = [], [], [], []
+    for row in range(len(forecast)):
+        reg_comps = 0
+        for r in coefs.index:
+            reg_comps *= (forecast.loc[row, r] - coefs.loc[r, 'center'])*coefs.loc[r, 'coef']
+        reg_comps_list.append(reg_comps)
+        holiday = 0
+        for h in list(model.train_holiday_names):
+            holiday += forecast.loc[row, h]
+        holiday_list.append(holiday)
+        seasons = 0
+        for s in list(m.seasonalities.keys()):
+            seasons += forecast.loc[row, s]
+        seasons_list.append(seasons)
+        tot.append(reg_comps + holiday + seasons + forecast.loc[row, 'extra_regressors_multiplicative'])
+        yhat.append(forecast.loc[row,'trend']*(1 + seasons + holiday + reg_comps +  forecast.loc[row, 'extra_regressors_multiplicative']) + 
+                    forecast.loc[row, 'additive_terms'])
+    
+    df_yhat = pd.DataFrame(list(zip(forecast.ds, reg_comps_list, holiday_list, seasons_list, forecast.extra_regressors_multiplicative, tot, yhat)), 
+                           index = forecast.index, columns=['ds', 'regressors', 'holiday', 'seasons', 'extra_reg_mult', 'tot', 'yhat'])
+    return df_yhat
+
 
 # dictionary for to for setting prediction horizon from date today
 predict_horizon_dict = {'7 days': 7,
@@ -317,7 +401,7 @@ if __name__ == '__main__':
     elif platform == 'Mechanigo.ph':
         param  = st.sidebar.selectbox('Metric to Forecast',
                               ('sessions', 'website bookings'))
-        
+    param = 'purchases_website'
     predict_horizon = st.sidebar.selectbox('Prediction horizon:',
                                            ('7 days', '15 days'))
     
@@ -378,5 +462,12 @@ if __name__ == '__main__':
     forecast = m.predict(future)
     for pred in ['yhat', 'yhat_lower', 'yhat_upper']:
         forecast.loc[:, pred] = forecast.loc[:, pred].apply(lambda x: 0 if x < 0 else x)
+    
+    y_true = traffic_data.loc['2022-08-01':'2022-08-28', param].fillna(0)
+    y_pred = forecast.set_index('ds').loc['2022-08-01':'2022-08-28', 'yhat'].fillna(0)
+    error = np.sqrt(mean_squared_error(y_true, y_pred))
+    
+    # get regressor coefficients
+    regressor_coefs = regressor_coefficients(m).set_index('regressor')
     # plot
     plot_forecast_(traffic_data, forecast, param, end_train, end_predict)
