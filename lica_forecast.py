@@ -491,6 +491,11 @@ if __name__ == '__main__':
     for pred in ['yhat', 'yhat_lower', 'yhat_upper']:
         forecast.loc[:, pred] = forecast.loc[:, pred].apply(lambda x: 0 if x < 0 else x)
     
+    st.write('Total predicted:')
+    yhat = round(forecast.iloc[-predict_horizon_dict[predict_horizon]:].yhat.sum())
+    yhat_lower = round(forecast.iloc[-predict_horizon_dict[predict_horizon]:].yhat_lower.sum())
+    yhat_upper = round(forecast.iloc[-predict_horizon_dict[predict_horizon]:].yhat_upper.sum())
+    st.dataframe(pd.DataFrame([[yhat, yhat_lower, yhat_upper]], columns=['yhat', 'yhat_lower', 'yhat_upper']))
     
     
     y_true = traffic_data.loc['2022-08-01':'2022-08-28', param].fillna(0)
