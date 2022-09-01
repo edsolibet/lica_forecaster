@@ -425,7 +425,7 @@ if __name__ == '__main__':
         param  = st.sidebar.selectbox('Metric to Forecast',
                               ('sessions', 'website bookings'))
     predict_horizon = st.sidebar.selectbox('Prediction horizon:',
-                                           ('7 days', '15 days'))
+                                           ('7 days', '15 days', '30 days'))
     
     st.sidebar.write('Model features:')
     season_model = st.sidebar.checkbox('Seasonality', 
