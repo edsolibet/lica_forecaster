@@ -295,7 +295,7 @@ def plot_forecast_(data, forecast, param, end_train, end_pred):
                     x=forecast['ds'],
                     y=forecast['yhat_upper'],
                     mode='lines',
-                    marker=dict(color='rgba(176, 225, 230, 0.3)'),
+                    marker=dict(color='rgba(176, 225, 230, 0.6)'),
                     line=dict(width=0),
                     showlegend=False
                 ),
@@ -303,10 +303,10 @@ def plot_forecast_(data, forecast, param, end_train, end_pred):
                     name='yhat_lower',
                     x=forecast['ds'],
                     y=forecast['yhat_lower'],
-                    marker=dict(color="rgb(176, 225, 230, 0.3)"),
+                    marker=dict(color="rgb(176, 225, 230, 0.6)"),
                     line=dict(width=0),
                     mode='lines',
-                    fillcolor='rgba(176, 225, 230, 0.3)',
+                    fillcolor='rgba(176, 225, 230, 0.6)',
                     fill='tonexty',
                     showlegend=False
                 )
