@@ -461,7 +461,7 @@ if __name__ == '__main__':
               },
               'purchases_backend_website':{'growth': 'logistic',
               'seasonality_mode': 'multiplicative',
-              'changepoint_prior_scale': 15,
+              'changepoint_prior_scale': 10,
               'n_changepoints' : 20,
               }
               }
@@ -477,7 +477,7 @@ if __name__ == '__main__':
         m.holidays = holidays
         
         holiday_scale_dict = {'sessions': 3,
-                              'purchase_backend_website': 3}
+                              'purchases_backend_website': 3}
         
         m.holiday_prior_scale = 3
         
@@ -490,7 +490,7 @@ if __name__ == '__main__':
         m = add_seasonality(m, seasonality_dict) # add seasonality
         
         seasonality_scale_dict = {'sessions': 15,
-                                  'purchase_backend_website': 5}
+                                  'purchases_backend_website': 5}
         
         m.seasonality_prior_scale = seasonality_scale_dict[param]
     # add regressors and exogenous variables
