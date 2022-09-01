@@ -243,9 +243,9 @@ def add_regressors(model, temp_df, future, exogs=None, time_diff=1, regs=None):
         for exog in exogs.columns:
             temp_df.loc[time_diff:, exog] =  exogs.loc[start_train:new_end][exog].values
             #future.loc[time_diff-1:, exog] = traffic_data_.loc[start_train:][exog].values
-            future.loc[time_diff-1:, exog] = exogs.reset_index().iloc[-len(future.loc[time_diff-1:]):][exog].values
+            future.loc[time_diff:, exog] = exogs.reset_index().iloc[-len(future.loc[time_diff-1:]):][exog].values
             m = m.add_regressor(exog)
-    return m, temp_df.loc[time_diff:], future.loc[time_diff-1:]
+    return m, temp_df.loc[time_diff:], future.loc[time_diff:]
 
 
 def plot_forecast(data, forecast, param, end_train, end_pred):
@@ -476,12 +476,14 @@ if __name__ == '__main__':
     # add regressors and exogenous variables
     if regressor_model:
         kw_list =['gulong', 'gogulong']
-        gtrend_data = get_gtrend_data(kw_list, start_train, end_train)
         traffic_data.loc[:, exog_num_cols] = traffic_data.loc[:, exog_num_cols].fillna(0)
-        if len(kw_list):
-            for kw in kw_list:
-                traffic_data.loc[start_train:, kw] = gtrend_data[kw].values
-        m, temp_df, future = add_regressors(m, temp_df, future, traffic_data[exog_num_cols].loc[start_train:], time_diff, regs)
+        if kw_list:
+            gtrend_data = get_gtrend_data(kw_list, start_train, end_train)
+            gtrend_data.index = pd.to_datetime(gtrend_data.index)
+            exogs = pd.concat([traffic_data.loc[start_train:,exog_num_cols], gtrend_data], axis=1)
+        else:
+            exogs = traffic_data.loc[start_train, exog_num_cols]
+        m, temp_df, future = add_regressors(m, temp_df, future, exogs, time_diff, regs)
     # fit model
     m.fit(temp_df)
     
