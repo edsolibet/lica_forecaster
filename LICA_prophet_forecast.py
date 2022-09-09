@@ -176,3 +176,6 @@ with st.sidebar.form('Setup'):
                                                        max_value=30,
                                                        value=8,
                                                        step=1)
+    submitted = st.form_submit_button('Start forecast')
+    if submitted:
+        pass
