@@ -114,17 +114,17 @@ with st.sidebar.form('Setup'):
         changepoint_prior_scale = st.number_input('changepoint_prior_scale',
                                                   min_value=0.05,
                                                   max_value=50,
-                                                  value=10,
+                                                  value=10.0,
                                                   step=0.05)
         seasonality_prior_scale = st.number_input('seasonality_prior_scale',
                                                   min_value=0.05,
-                                                  max_value=50,
-                                                  value=5,
+                                                  max_value=50.0,
+                                                  value=5.0,
                                                   step=0.05)
         holiday_prior_scale = st.number_input('holiday_prior_scale',
                                                   min_value=0.05,
-                                                  max_value=50,
-                                                  value=5,
+                                                  max_value=50.0,
+                                                  value=5.0,
                                                   step=0.05)
     
     with st.expander('Seasonalities'):
@@ -140,10 +140,10 @@ with st.sidebar.form('Setup'):
                                                        value=5,
                                                        step=1)
             yearly_seasonality_prior_scale = st.number_input('Yearly seasonality prior scale',
-                                                       min_value = 1,
-                                                       max_value=30,
-                                                       value=8,
-                                                       step=1)
+                                                       min_value = 1.0,
+                                                       max_value=30.0,
+                                                       value=8.0,
+                                                       step=1.0)
         # monthly
         monthly_seasonality = st.selectbox('monthly_seasonality', 
                                           ('auto', False, 'custom'))
@@ -156,10 +156,10 @@ with st.sidebar.form('Setup'):
                                                        value=5,
                                                        step=1)
             monthly_seasonality_prior_scale = st.number_input('Monthly seasonality prior scale',
-                                                       min_value = 1,
-                                                       max_value=30,
-                                                       value=8,
-                                                       step=1)
+                                                       min_value = 1.0,
+                                                       max_value=30.0,
+                                                       value=8.0,
+                                                       step=1.0)
         # weekly
         weekly_seasonality = st.selectbox('weekly_seasonality', 
                                           ('auto', False, 'custom'))
@@ -172,10 +172,11 @@ with st.sidebar.form('Setup'):
                                                        value=5,
                                                        step=1)
             weekly_seasonality_prior_scale = st.number_input('Weekly seasonality prior scale',
-                                                       min_value = 1,
-                                                       max_value=30,
-                                                       value=8,
-                                                       step=1)
+                                                       min_value = 1.0,
+                                                       max_value=30.0,
+                                                       value=8.0,
+                                                       step=1.0)
+    
     submitted = st.form_submit_button('Start forecast')
     if submitted:
         pass
