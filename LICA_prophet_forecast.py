@@ -94,7 +94,7 @@ def get_data(platform):
                                      'purchases_backend_fb', 'purchases_backend_walk-in', 
                                      'purchases_backend_nan'], axis=1, inplace=True)
 
-    return traffic_data_
+    return traffic_data_.reset_index()
 
 platform_data = {'Gulong.ph': ('sessions', 'purchases_backend_website'),
                  'Mechanigo.ph': ('sessions', 'bookings_ga')}
@@ -103,11 +103,14 @@ with st.sidebar.form('Setup'):
     st.write('1. Data')
     with st.expander('Data selection'):
         platform = st.selectbox('Select platform',
-                                        ('Gulong.ph', 'Mechanigo.ph'))
+                                ('Gulong.ph', 'Mechanigo.ph'),
+                                index=0)
         data = get_data(platform)
     with st.expander('Columns'):
-        date_col = st.selectbox('Date column', data.columns[data.dtypes=='datetime64[ns]'])
-        target_col = st.selectbox('Target column:', platform_data[platform])
+        date_col = st.selectbox('Date column', data.columns[data.dtypes=='datetime64[ns]'],
+                                index=0)
+        target_col = st.selectbox('Target column:', platform_data[platform],
+                                  index=0)
         
     st.write('2. Modelling')
     with st.expander('Prior scale'):
