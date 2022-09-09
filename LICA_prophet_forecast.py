@@ -99,6 +99,26 @@ def get_data(platform):
 platform_data = {'Gulong.ph': ('sessions', 'purchases_backend_website'),
                  'Mechanigo.ph': ('sessions', 'bookings_ga')}
 
+def extra_inputs(value, seasonality: str):
+    if value == 'custom':
+        additional_selectboxes = st.empty()
+        with additional_selectboxes.container():
+            mode = st.selectbox(seasonality + ' mode',
+                                ('multiplicative', 'additive'))
+            order = st.number_input(seasonality + ' order',
+                                    min_value = 1,
+                                    max_value=30,
+                                    value=5,
+                                    step=1)
+            prior_scale = st.number_input(seasonality + ' prior scale',
+                                    min_value = 1.0,
+                                    max_value=30.0,
+                                    value=8.0,
+                                    step=1.0)
+        return mode, order, prior_scale
+    else:
+        pass 
+
 with st.sidebar.form('Setup'):
     st.write('1. Data')
     with st.expander('Data selection'):
@@ -134,19 +154,21 @@ with st.sidebar.form('Setup'):
         # yearly
         yearly_seasonality = st.selectbox('yearly_seasonality', 
                                           ('auto', False, 'custom'))
+        additional_selectboxes = st.empty()
         if yearly_seasonality == 'custom':
-            yearly_seasonality_mode = st.selectbox('Yearly seasonality mode',
-                                                   ('multiplicative', 'additive'))
-            yearly_seasonality_order = st.number_input('Yearly seasonality order',
-                                                       min_value = 1,
-                                                       max_value=30,
-                                                       value=5,
-                                                       step=1)
-            yearly_seasonality_prior_scale = st.number_input('Yearly seasonality prior scale',
-                                                       min_value = 1.0,
-                                                       max_value=30.0,
-                                                       value=8.0,
-                                                       step=1.0)
+            with additional_selectboxes.container():
+                yearly_seasonality_mode = st.selectbox('Yearly seasonality mode',
+                                                       ('multiplicative', 'additive'))
+                yearly_seasonality_order = st.number_input('Yearly seasonality order',
+                                                           min_value = 1,
+                                                           max_value=30,
+                                                           value=5,
+                                                           step=1)
+                yearly_seasonality_prior_scale = st.number_input('Yearly seasonality prior scale',
+                                                           min_value = 1.0,
+                                                           max_value=30.0,
+                                                           value=8.0,
+                                                           step=1.0)
         # monthly
         monthly_seasonality = st.selectbox('monthly_seasonality', 
                                           ('auto', False, 'custom'))
@@ -180,6 +202,8 @@ with st.sidebar.form('Setup'):
                                                        value=8.0,
                                                        step=1.0)
     
+    with st.expander('Holidays'):
+        add_holidays = st.checkbox('Public holidays')
     submitted = st.form_submit_button('Start forecast')
     if submitted:
         pass
