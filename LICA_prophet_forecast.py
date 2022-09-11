@@ -134,30 +134,33 @@ if __name__ == '__main__':
                                   index=0)
         
     st.sidebar.write('2. Modelling')
-    with st.sidebar.expander('Prior scale'):
-        changepoint_prior_scale = st.number_input('changepoint_prior_scale',
-                                                  min_value=0.05,
-                                                  max_value=50.0,
-                                                  value=15.0,
-                                                  step=0.05)
-        seasonality_prior_scale = st.number_input('seasonality_prior_scale',
-                                                  min_value=0.05,
-                                                  max_value=50.0,
-                                                  value=10.0,
-                                                  step=0.05)
-        holiday_prior_scale = st.number_input('holiday_prior_scale',
-                                                  min_value=0.05,
-                                                  max_value=50.0,
-                                                  value=5.0,
-                                                  step=0.05)
+    # set base Prophet model
+    m = Prophet()
+    # set params dict
+    params = {}
     
-    with st.sidebar.expander('n_changepoints'):
+    with st.sidebar.expander('Prior scale'):
+        
+        
+        # add to params dict
+        
+        params['holiday_prior_scale'] = holiday_prior_scale
+        
+    with st.sidebar.expander('Changepoints'):
+        
         n_changepoints = st.slider('Number of changepoints',
                                    min_value = 5,
                                    max_value = 100,
                                    value = 20,
                                    step = 5)
-    
+        changepoint_prior_scale = st.number_input('changepoint_prior_scale',
+                                                  min_value=0.05,
+                                                  max_value=50.0,
+                                                  value=15.0,
+                                                  step=0.05)
+        params['n_change_points'] = n_changepoints
+        params['changepoint_prior_scale'] = changepoint_prior_scale
+        
     with st.sidebar.expander('Cap and floor'):
         use_cap = st.checkbox('Add cap value')
         if use_cap:
@@ -189,7 +192,16 @@ if __name__ == '__main__':
         seasonality_mode = st.selectbox('seasonality_mode',
                                         options = ['multiplicative', 'additive'],
                                         index = 0)
+        params['seasonality_mode'] = seasonality_mode
         season_index = 0 if seasonality_mode == 'multiplicative' else 1
+        
+        seasonality_prior_scale = st.number_input('seasonality_prior_scale',
+                                                  min_value=0.05,
+                                                  max_value=50.0,
+                                                  value=10.0,
+                                                  step=0.05)
+        params['seasonality_prior_scale'] = seasonality_prior_scale
+        
         yearly_seasonality = st.selectbox('yearly_seasonality', 
                                           ('auto', False, 'custom'))
         if yearly_seasonality == 'custom':
@@ -206,6 +218,13 @@ if __name__ == '__main__':
                                                            max_value=30.0,
                                                            value=8.0,
                                                            step=1.0)
+                m.yearly_seasonality = False
+                m.add_seasonality('yearly',
+                                  period = 365,
+                                  fourier_order = yearly_seasonality_order,
+                                  prior_scale = yearly_seasonality_prior_scale)
+        else:
+            params['yearly_seasonality'] = yearly_seasonality
         # monthly
         monthly_seasonality = st.selectbox('monthly_seasonality', 
                                           ('auto', False, 'custom'))
@@ -223,6 +242,14 @@ if __name__ == '__main__':
                                                        max_value=30.0,
                                                        value=8.0,
                                                        step=1.0)
+            m.monthly_seasonality = False
+            m.add_seasonality('monthly',
+                              period = 30,
+                              fourier_order = monthly_seasonality_order,
+                              prior_scale = monthly_seasonality_prior_scale)
+        else:
+            params['monthly_seasonality'] = monthly_seasonality
+            
         # weekly
         weekly_seasonality = st.selectbox('weekly_seasonality', 
                                           ('auto', False, 'custom'))
@@ -240,9 +267,49 @@ if __name__ == '__main__':
                                                        max_value=30.0,
                                                        value=8.0,
                                                        step=1.0)
+            m.weekly_seasonality = False
+            m.add_seasonality('monthly',
+                              period = 7,
+                              fourier_order = weekly_seasonality_order,
+                              prior_scale = weekly_seasonality_prior_scale)
+        else:
+            params['weekly_seasonality'] = weekly_seasonality
+            
     
     with st.sidebar.expander('Holidays'):
         add_holidays = st.checkbox('Public holidays')
+        if add_holidays:
+            m.add_country_holidays(country_name='PH')
+        
+        add_set_holidays = st.checkbox('Set holidays')
+        holidays = []
+        fathers_day = pd.DataFrame({
+                        'holiday': 'fathers_day',
+                        'ds': pd.to_datetime(['2022-06-19']),
+                        'lower_window': -21,
+                        'upper_window': 3})
+        if add_set_holidays:
+            set_holidays = st.multiselect('Set holidays',
+                                          options = [fathers_day],
+                                          value = [fathers_day])
+            holidays.append(set_holidays)
+        
+        add_custom_holidays = st.checkbox('Custom holidays')
+        if add_custom_holidays:
+            holiday_name = st.text_input('Holiday name')
+            holiday_date = st.date_input('Holiday date')
+            holiday_lower_window = st.number_input('Holiday lower window (days)',
+                                                   value=-1)
+            holiday_upper_window = st.number_input('Holiday upper window (days)',
+                                                   value = 1)
+            holiday = pd.DataFrame({'holiday' : holiday_name,
+                                   'ds': pd.to_datetime([holiday_date]),
+                                   'lower_window': holiday_lower_window,
+                                   'upper_window': holiday_upper_window})
+            holidays.append(holiday)
+        if add_set_holidays or add_custom_holidays:
+            m.holidays = holidays
+        
     
     with st.sidebar.expander('Regressors'):
         regressors = data.drop(columns=[date_col, target_col], axis=1).columns
@@ -317,8 +384,12 @@ if __name__ == '__main__':
         st.header('Model overview')
         params = {'growth': growth_type,
                   'n_changepoints' : n_changepoints,
+                  'changepoint_prior_scale': changepoint_prior_scale,
+                  'seasonality_prior_scale' : seasonality_prior_scale,
+                  'holiday_prior_scale' : holiday_prior_scale,
+                  'seasonality_mode': seasonality_mode,
+                  'changepoint_range' : changepoint_range
                   }
-        m = Prophet()
         
     
     
