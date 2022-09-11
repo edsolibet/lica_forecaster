@@ -139,12 +139,6 @@ if __name__ == '__main__':
     # set params dict
     params = {}
     
-    with st.sidebar.expander('Prior scale'):
-        
-        
-        # add to params dict
-        
-        params['holiday_prior_scale'] = holiday_prior_scale
         
     with st.sidebar.expander('Changepoints'):
         
@@ -307,8 +301,14 @@ if __name__ == '__main__':
                                    'lower_window': holiday_lower_window,
                                    'upper_window': holiday_upper_window})
             holidays.append(holiday)
-        if add_set_holidays or add_custom_holidays:
+        if add_holidays or add_set_holidays or add_custom_holidays:
             m.holidays = holidays
+            holiday_prior_scale = st.number_input('holiday_prior_scale',
+                                                  min_value=0.05,
+                                                  max_value=50.0,
+                                                  value=10.0,
+                                                  step=0.05)
+            params['holiday_prior_scale'] = holiday_prior_scale
         
     
     with st.sidebar.expander('Regressors'):
