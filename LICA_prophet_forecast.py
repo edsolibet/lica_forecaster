@@ -189,7 +189,7 @@ if __name__ == '__main__':
         seasonality_mode = st.selectbox('seasonality_mode',
                                         options = ['multiplicative', 'additive'],
                                         index = 0)
-        season_index = 0 if seasonality_mode == 'multiplcative' else 1
+        season_index = 0 if seasonality_mode == 'multiplicative' else 1
         yearly_seasonality = st.selectbox('yearly_seasonality', 
                                           ('auto', False, 'custom'))
         if yearly_seasonality == 'custom':
