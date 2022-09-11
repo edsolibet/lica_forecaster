@@ -205,9 +205,10 @@ if __name__ == '__main__':
         add_holidays = st.checkbox('Public holidays')
     
     with st.sidebar.expander('Regressors'):
-        regressors = data.drop(target_col, axis=1).columns
+        regressors = data.drop(columns=[date_col, target_col], axis=1).columns
         selected_regressors = st.multiselect('Select external metrics if any:',
                        options= regressors)
+        
     with st.sidebar.expander('Other parameters'):
         changepoint_range = st.number_input('changepoint_range',
                                             min_value=0.1,
@@ -219,23 +220,40 @@ if __name__ == '__main__':
     
     st.sidebar.write('3. Evaluation')
     with st.sidebar.expander('Data Split'):
-        col1, col2 = st.columns(2)
+        st.write('Training dataset')
+        tcol1, tcol2 = st.columns(2)
         date_series = pd.to_datetime(data.loc[:,date_col])
-        with col1:
+        with tcol1:
             train_start = st.date_input('Training data start date',
                                         value = pd.to_datetime('2022-03-01'),
                                         min_value=date_series.min().date(),
                                         max_value=date_series.max().date())
-        with col2:
+        with tcol2:
             train_end = st.date_input('Training data end date',
                                         value = pd.to_datetime('2022-07-31'),
                                         min_value= pd.to_datetime('2022-04-01'),
                                         max_value=date_series.max().date())
         if train_start >= train_end:
             st.error('Training data end should come after training data start.')
+            
+        st.write('Validation dataset')
+        vcol1, vcol2 = st.columns(2)
+        with vcol1:
+            val_start = st.date_input('Validation data start date',
+                                        value = pd.to_datetime('2022-03-01'),
+                                        min_value=(train_end + timedelta(days=1)).date(),
+                                        max_value=date_series.max().date())
+        with vcol2:
+            val_end = st.date_input('Validation data end date',
+                                        value = pd.to_datetime('2022-07-31'),
+                                        min_value= (val_start + timedelta(days=1)).date(),
+                                        max_value=date_series.max().date())
+        if val_start >= val_end:
+            st.error('Validation data end should come after validation data start.')
+        
     with st.sidebar.expander('Metrics'):
         selected_metrics = st.multiselect('Select evaluation metrics',
                                           options=['MAE', 'MSE', 'RMSE', 'MAPE'],
                                           default = ['MAE', 'MSE', 'RMSE', 'MAPE'])
                         
-        
+    
