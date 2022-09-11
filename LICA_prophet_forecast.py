@@ -267,10 +267,5 @@ if __name__ == '__main__':
                                                step = 1)
             st.info('Forecast dates: \n {} to {}'.format(val_end+timedelta(days=1), 
                                                    val_end+timedelta(days=15)))
-    with st.sidebar.container():
-        st.markdown('''
-                 \n
-                 \n
-                 \n
-                 ''')
+    st.sidebar.write('\n\n\n')
     
