@@ -151,6 +151,32 @@ if __name__ == '__main__':
                                                   value=5.0,
                                                   step=0.05)
     
+    with st.sidebar.expander('Cap and floor'):
+        use_cap = st.checkbox('Add cap value')
+        use_floor = st.checkbox('Add floor value')
+        if use_cap:
+            cap_type = st.selectbox('Value cap type',
+                                    options=['fixed', 'multiplier'])
+            if cap_type == 'fixed':
+                cap = st.number_input('Fixed cap value',
+                                      min_value = 0,
+                                      value = 100)
+            elif cap_type == 'multiplier':
+                cap = st.number_input('Cap multiplier',
+                                      min_value = 1,
+                                      value = 1)
+        if use_floor:
+            floor_type = st.selectbox('Value floor type',
+                                    options=['fixed', 'multiplier'])
+            if floor_type == 'fixed':
+                floor = st.number_input('Fixed floor value',
+                                      min_value = 0,
+                                      value = 0)
+            elif floor_type == 'multiplier':
+                floor = st.number_input('Floor multiplier',
+                                      min_value = 0,
+                                      value = 0)
+    
     with st.sidebar.expander('Seasonalities'):
         # yearly
         yearly_seasonality = st.selectbox('yearly_seasonality', 
@@ -276,5 +302,7 @@ if __name__ == '__main__':
     if launch_forecast:
         st.header('Model overview')
 
+        m = Prophet()
+        
     
     
