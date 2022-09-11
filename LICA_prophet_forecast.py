@@ -257,7 +257,7 @@ if __name__ == '__main__':
                                           default = ['MAE', 'MSE', 'RMSE', 'MAPE'])
     
     st.sidebar.write('4. Forecast')
-    make_forecast_future = st.checkbox('Make forecast on future dates')
+    make_forecast_future = st.sidebar.checkbox('Make forecast on future dates')
     if make_forecast_future:
         with st.sidebar.expander('Horizon'):
             forecast_horizon = st.number_input('Forecast horizon in days',
