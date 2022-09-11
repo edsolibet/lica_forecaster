@@ -35,7 +35,7 @@ def ratio(a, b):
     '''
     return a/b if b else 0
 
-
+@st.experimental_memo
 def get_data(platform):
     '''
     Imports data based on selected platform
@@ -120,89 +120,120 @@ def extra_inputs(value, seasonality: str):
         pass 
 
 
-st.sidebar.write('1. Data')
-with st.sidebar.expander('Data selection'):
-    platform = st.selectbox('Select platform',
-                            ('Gulong.ph', 'Mechanigo.ph'),
-                            index=0)
-    data = get_data(platform)
-with st.sidebar.expander('Columns'):
-    date_col = st.selectbox('Date column', data.columns[data.dtypes=='datetime64[ns]'],
-                            index=0)
-    target_col = st.selectbox('Target column:', platform_data[platform],
-                              index=0)
+if __name__ == '__main__':
+    st.sidebar.write('1. Data')
+    with st.sidebar.expander('Data selection'):
+        platform = st.selectbox('Select platform',
+                                ('Gulong.ph', 'Mechanigo.ph'),
+                                index=0)
+        data = get_data(platform)
+    with st.sidebar.expander('Columns'):
+        date_col = st.selectbox('Date column', data.columns[data.dtypes=='datetime64[ns]'],
+                                index=0)
+        target_col = st.selectbox('Target column:', platform_data[platform],
+                                  index=0)
+        
+    st.sidebar.write('2. Modelling')
+    with st.sidebar.expander('Prior scale'):
+        changepoint_prior_scale = st.number_input('changepoint_prior_scale',
+                                                  min_value=0.05,
+                                                  max_value=50.0,
+                                                  value=15.0,
+                                                  step=0.05)
+        seasonality_prior_scale = st.number_input('seasonality_prior_scale',
+                                                  min_value=0.05,
+                                                  max_value=50.0,
+                                                  value=10.0,
+                                                  step=0.05)
+        holiday_prior_scale = st.number_input('holiday_prior_scale',
+                                                  min_value=0.05,
+                                                  max_value=50.0,
+                                                  value=5.0,
+                                                  step=0.05)
     
-st.sidebar.write('2. Modelling')
-with st.sidebar.expander('Prior scale'):
-    changepoint_prior_scale = st.number_input('changepoint_prior_scale',
-                                              min_value=0.05,
-                                              max_value=50.0,
-                                              value=10.0,
-                                              step=0.05)
-    seasonality_prior_scale = st.number_input('seasonality_prior_scale',
-                                              min_value=0.05,
-                                              max_value=50.0,
-                                              value=5.0,
-                                              step=0.05)
-    holiday_prior_scale = st.number_input('holiday_prior_scale',
-                                              min_value=0.05,
-                                              max_value=50.0,
-                                              value=5.0,
-                                              step=0.05)
-
-with st.sidebar.expander('Seasonalities'):
-    # yearly
-    yearly_seasonality = st.selectbox('yearly_seasonality', 
-                                      ('auto', False, 'custom'))
-    additional_selectboxes = st.empty()
-    if yearly_seasonality == 'custom':
-        with additional_selectboxes.container():
-            yearly_seasonality_mode = st.selectbox('Yearly seasonality mode',
+    with st.sidebar.expander('Seasonalities'):
+        # yearly
+        yearly_seasonality = st.selectbox('yearly_seasonality', 
+                                          ('auto', False, 'custom'))
+        if yearly_seasonality == 'custom':
+                yearly_seasonality_mode = st.selectbox('Yearly seasonality mode',
+                                                       ('multiplicative', 'additive'))
+                yearly_seasonality_order = st.number_input('Yearly seasonality order',
+                                                           min_value = 1,
+                                                           max_value=30,
+                                                           value=5,
+                                                           step=1)
+                yearly_seasonality_prior_scale = st.number_input('Yearly seasonality prior scale',
+                                                           min_value = 1.0,
+                                                           max_value=30.0,
+                                                           value=8.0,
+                                                           step=1.0)
+        # monthly
+        monthly_seasonality = st.selectbox('monthly_seasonality', 
+                                          ('auto', False, 'custom'))
+        if monthly_seasonality == 'custom':
+            monthly_seasonality_mode = st.selectbox('Monthly seasonality mode',
                                                    ('multiplicative', 'additive'))
-            yearly_seasonality_order = st.number_input('Yearly seasonality order',
+            monthly_seasonality_order = st.number_input('Monthly seasonality order',
                                                        min_value = 1,
                                                        max_value=30,
                                                        value=5,
                                                        step=1)
-            yearly_seasonality_prior_scale = st.number_input('Yearly seasonality prior scale',
+            monthly_seasonality_prior_scale = st.number_input('Monthly seasonality prior scale',
                                                        min_value = 1.0,
                                                        max_value=30.0,
                                                        value=8.0,
                                                        step=1.0)
-    # monthly
-    monthly_seasonality = st.selectbox('monthly_seasonality', 
-                                      ('auto', False, 'custom'))
-    if monthly_seasonality == 'custom':
-        monthly_seasonality_mode = st.selectbox('Monthly seasonality mode',
-                                               ('multiplicative', 'additive'))
-        monthly_seasonality_order = st.number_input('Monthly seasonality order',
-                                                   min_value = 1,
-                                                   max_value=30,
-                                                   value=5,
-                                                   step=1)
-        monthly_seasonality_prior_scale = st.number_input('Monthly seasonality prior scale',
-                                                   min_value = 1.0,
-                                                   max_value=30.0,
-                                                   value=8.0,
-                                                   step=1.0)
-    # weekly
-    weekly_seasonality = st.selectbox('weekly_seasonality', 
-                                      ('auto', False, 'custom'))
-    if weekly_seasonality == 'custom':
-        weekly_seasonality_mode = st.selectbox('Weekly seasonality mode',
-                                               ('multiplicative', 'additive'))
-        weekly_seasonality_order = st.number_input('Weekly seasonality order',
-                                                   min_value = 1,
-                                                   max_value=30,
-                                                   value=5,
-                                                   step=1)
-        weekly_seasonality_prior_scale = st.number_input('Weekly seasonality prior scale',
-                                                   min_value = 1.0,
-                                                   max_value=30.0,
-                                                   value=8.0,
-                                                   step=1.0)
-
-with st.expander('Holidays'):
-    add_holidays = st.checkbox('Public holidays')
+        # weekly
+        weekly_seasonality = st.selectbox('weekly_seasonality', 
+                                          ('auto', False, 'custom'))
+        if weekly_seasonality == 'custom':
+            weekly_seasonality_mode = st.selectbox('Weekly seasonality mode',
+                                                   ('multiplicative', 'additive'))
+            weekly_seasonality_order = st.number_input('Weekly seasonality order',
+                                                       min_value = 1,
+                                                       max_value=30,
+                                                       value=5,
+                                                       step=1)
+            weekly_seasonality_prior_scale = st.number_input('Weekly seasonality prior scale',
+                                                       min_value = 1.0,
+                                                       max_value=30.0,
+                                                       value=8.0,
+                                                       step=1.0)
     
+    with st.sidebar.expander('Holidays'):
+        add_holidays = st.checkbox('Public holidays')
+    
+    with st.sidebar.expander('Regressors'):
+        regressors = data.drop(target_col, axis=1).columns
+        selected_regressors = st.multiselect('Select external metrics if any:',
+                       options= regressors)
+    with st.sidebar.expander('Other parameters'):
+        changepoint_range = st.number_input('changepoint_range',
+                                            min_value=0.1,
+                                            max_value=1.0,
+                                            value=0.8,
+                                            step=0.1)
+        growth_type = st.selectbox('growth',
+                                   options=['logistic', 'linear'])
+    
+    st.sidebar.write('3. Evaluation')
+    with st.sidebar.expander('Data Split'):
+        col1, col2 = st.columns
+        date_series = pd.to_datetime(data.loc[:,date_col])
+        with col1:
+            train_start = st.date_input('Training data start date',
+                                        value = pd.to_datetime('2022-03-01'),
+                                        min_value=date_series.min().day,
+                                        max_value=(date_series.min() + timedelta(days=30)).day)
+        with col2:
+            train_end = st.date_input('Training data end date',
+                                        value = pd.to_datetime('2022-07-31'),
+                                        min_value= pd.to_datetime('2022-04-01'),
+                                        max_value=date_series.max().day)
+    with st.sidebar.expander('Metrics'):
+        selected_metrics = st.multiselect('Select evaluation metrics',
+                                          options=['MAE', 'MSE', 'RMSE', 'MAPE'],
+                                          value = ['MAE', 'MSE', 'RMSE', 'MAPE'])
+                        
         
