@@ -241,12 +241,12 @@ if __name__ == '__main__':
         with vcol1:
             val_start = st.date_input('Validation data start date',
                                         value = pd.to_datetime('2022-03-01'),
-                                        min_value=(train_end + timedelta(days=1)).date(),
+                                        min_value=train_end + timedelta(days=1),
                                         max_value=date_series.max().date())
         with vcol2:
             val_end = st.date_input('Validation data end date',
                                         value = pd.to_datetime('2022-07-31'),
-                                        min_value= (val_start + timedelta(days=1)).date(),
+                                        min_value= val_start + timedelta(days=1),
                                         max_value=date_series.max().date())
         if val_start >= val_end:
             st.error('Validation data end should come after validation data start.')
