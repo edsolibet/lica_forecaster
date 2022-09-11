@@ -265,6 +265,6 @@ if __name__ == '__main__':
                                                max_value = 30,
                                                value = 15,
                                                step = 1)
-            st.info('Forecast dates: {}-{}'.format(val_end+timedelta(days=1), 
+            st.info('Forecast dates: \n {} to {}'.format(val_end+timedelta(days=1), 
                                                    val_end+timedelta(days=15)))
     
