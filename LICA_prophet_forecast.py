@@ -219,7 +219,7 @@ if __name__ == '__main__':
     
     st.sidebar.write('3. Evaluation')
     with st.sidebar.expander('Data Split'):
-        col1, col2 = st.columns
+        col1, col2 = st.columns(2)
         date_series = pd.to_datetime(data.loc[:,date_col])
         with col1:
             train_start = st.date_input('Training data start date',
