@@ -240,12 +240,12 @@ if __name__ == '__main__':
         vcol1, vcol2 = st.columns(2)
         with vcol1:
             val_start = st.date_input('Validation data start date',
-                                        value = pd.to_datetime('2022-03-01'),
+                                        value = train_end + timedelta(days=1),
                                         min_value=train_end + timedelta(days=1),
                                         max_value=date_series.max().date())
         with vcol2:
             val_end = st.date_input('Validation data end date',
-                                        value = pd.to_datetime('2022-07-31'),
+                                        value = date_series.max().date(),
                                         min_value= val_start + timedelta(days=1),
                                         max_value=date_series.max().date())
         if val_start >= val_end:
