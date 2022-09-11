@@ -151,9 +151,15 @@ if __name__ == '__main__':
                                                   value=5.0,
                                                   step=0.05)
     
+    with st.sidebar.expander('n_changepoints'):
+        n_changepoints = st.slider('Number of changepoints',
+                                   min_value = 5,
+                                   max_value = 100,
+                                   value = 20,
+                                   step = 5)
+    
     with st.sidebar.expander('Cap and floor'):
         use_cap = st.checkbox('Add cap value')
-        use_floor = st.checkbox('Add floor value')
         if use_cap:
             cap_type = st.selectbox('Value cap type',
                                     options=['fixed', 'multiplier'])
@@ -165,6 +171,7 @@ if __name__ == '__main__':
                 cap = st.number_input('Cap multiplier',
                                       min_value = 1,
                                       value = 1)
+        use_floor = st.checkbox('Add floor value')
         if use_floor:
             floor_type = st.selectbox('Value floor type',
                                     options=['fixed', 'multiplier'])
@@ -301,7 +308,8 @@ if __name__ == '__main__':
     # start forecast results
     if launch_forecast:
         st.header('Model overview')
-
+        params = {'growth': growth_type,
+                  }
         m = Prophet()
         
     
