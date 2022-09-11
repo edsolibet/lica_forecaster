@@ -285,7 +285,7 @@ if __name__ == '__main__':
         if add_set_holidays:
             set_holidays = st.multiselect('Set holidays',
                                           options = [fathers_day],
-                                          value = [fathers_day])
+                                          default = [fathers_day])
             holidays.append(set_holidays)
         
         add_custom_holidays = st.checkbox('Custom holidays')
