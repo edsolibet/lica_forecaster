@@ -225,15 +225,17 @@ if __name__ == '__main__':
             train_start = st.date_input('Training data start date',
                                         value = pd.to_datetime('2022-03-01'),
                                         min_value=date_series.min().date(),
-                                        max_value=(date_series.min() + timedelta(days=30)).date())
+                                        max_value=date_series.max().date())
         with col2:
             train_end = st.date_input('Training data end date',
                                         value = pd.to_datetime('2022-07-31'),
                                         min_value= pd.to_datetime('2022-04-01'),
                                         max_value=date_series.max().date())
+        if train_start >= train_end:
+            st.error('Training data end should come after training data start.')
     with st.sidebar.expander('Metrics'):
         selected_metrics = st.multiselect('Select evaluation metrics',
                                           options=['MAE', 'MSE', 'RMSE', 'MAPE'],
-                                          value = ['MAE', 'MSE', 'RMSE', 'MAPE'])
+                                          default = ['MAE', 'MSE', 'RMSE', 'MAPE'])
                         
         
