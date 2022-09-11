@@ -255,5 +255,16 @@ if __name__ == '__main__':
         selected_metrics = st.multiselect('Select evaluation metrics',
                                           options=['MAE', 'MSE', 'RMSE', 'MAPE'],
                                           default = ['MAE', 'MSE', 'RMSE', 'MAPE'])
-                        
+    
+    st.sidebar.write('4. Forecast')
+    make_forecast_future = st.checkbox('Make forecast on future dates')
+    if make_forecast_future:
+        with st.sidebar.expander('Horizon'):
+            forecast_horizon = st.number_input('Forecast horizon in days',
+                                               min_value = 1,
+                                               max_value = 30,
+                                               value = 15,
+                                               step = 1)
+            st.info('Forecast dates: {}-{}'.format(val_end+timedelta(days=1), 
+                                                   val_end+timedelta(days=15)))
     
