@@ -186,11 +186,16 @@ if __name__ == '__main__':
     
     with st.sidebar.expander('Seasonalities'):
         # yearly
+        seasonality_mode = st.selectbox('seasonality_mode',
+                                        options = ['multiplicative', 'additive'],
+                                        index = 0)
+        season_index = 0 if seasonality_mode == 'multiplcative' else 1
         yearly_seasonality = st.selectbox('yearly_seasonality', 
                                           ('auto', False, 'custom'))
         if yearly_seasonality == 'custom':
                 yearly_seasonality_mode = st.selectbox('Yearly seasonality mode',
-                                                       ('multiplicative', 'additive'))
+                                                       options = ['multiplicative', 'additive'],
+                                                       index = season_index)
                 yearly_seasonality_order = st.number_input('Yearly seasonality order',
                                                            min_value = 1,
                                                            max_value=30,
@@ -206,7 +211,8 @@ if __name__ == '__main__':
                                           ('auto', False, 'custom'))
         if monthly_seasonality == 'custom':
             monthly_seasonality_mode = st.selectbox('Monthly seasonality mode',
-                                                   ('multiplicative', 'additive'))
+                                                   options = ['multiplicative', 'additive'],
+                                                   index = season_index)
             monthly_seasonality_order = st.number_input('Monthly seasonality order',
                                                        min_value = 1,
                                                        max_value=30,
@@ -222,7 +228,8 @@ if __name__ == '__main__':
                                           ('auto', False, 'custom'))
         if weekly_seasonality == 'custom':
             weekly_seasonality_mode = st.selectbox('Weekly seasonality mode',
-                                                   ('multiplicative', 'additive'))
+                                                   options = ['multiplicative', 'additive'],
+                                                   index = season_index)
             weekly_seasonality_order = st.number_input('Weekly seasonality order',
                                                        min_value = 1,
                                                        max_value=30,
@@ -309,6 +316,7 @@ if __name__ == '__main__':
     if launch_forecast:
         st.header('Model overview')
         params = {'growth': growth_type,
+                  'n_changepoints' : n_changepoints,
                   }
         m = Prophet()
         
