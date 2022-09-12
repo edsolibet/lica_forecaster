@@ -120,7 +120,56 @@ def make_forecast_dataframe(train_start, train_end, val_end):
     future = pd.DataFrame(index=future_index).reset_index()
     return evals, future
 
-
+def plot_forecast(data, forecast, param, end_train, end_pred):
+    
+    dataset = data[data.index.isin(forecast.set_index('ds').index)]
+    
+    fig = go.Figure([
+                go.Scatter(
+                    name='Actual',
+                    x=dataset.index,
+                    y=dataset[param],
+                    mode='markers',
+                    marker=dict(color='rgb(255, 255, 255)',
+                                size=6),
+                ),
+                go.Scatter(
+                    name='yhat',
+                    x=forecast['ds'],
+                    y=forecast['yhat'],
+                    mode='lines',
+                    line=dict(color='rgb(30, 144, 255)'),
+                ),
+                go.Scatter(
+                    name='yhat_upper',
+                    x=forecast['ds'],
+                    y=forecast['yhat_upper'],
+                    mode='lines',
+                    marker=dict(color='rgba(176, 225, 230, 0.3)'),
+                    line=dict(width=0),
+                    showlegend=False
+                ),
+                go.Scatter(
+                    name='yhat_lower',
+                    x=forecast['ds'],
+                    y=forecast['yhat_lower'],
+                    marker=dict(color="rgb(176, 225, 230, 0.3)"),
+                    line=dict(width=0),
+                    mode='lines',
+                    fillcolor='rgba(176, 225, 230, 0.3)',
+                    fill='tonexty',
+                    showlegend=False
+                )
+            ])
+    
+    fig.update_layout(
+        yaxis_title=param,
+        hovermode="x")
+    # Change grid color and axis colors
+    fig.update_xaxes(showline=True, linewidth=2, linecolor='black', gridcolor='#696969')
+    fig.update_yaxes(showline=True, linewidth=2, linecolor='black', gridcolor='#696969')
+    fig.show()
+    st.plotly_chart(fig, use_container_width=True)
 
 if __name__ == '__main__':
     st.sidebar.write('1. Data')
@@ -307,7 +356,7 @@ if __name__ == '__main__':
             set_holidays = st.multiselect('Set holidays',
                                           options = [h.loc[0, 'holiday'] for h in holidays_choices],
                                           default = [h.loc[0, 'holiday'] for h in holidays_choices])
-            holidays.append(set_holidays)
+            holidays.extend(set_holidays)
             
         add_custom_holidays = st.checkbox('Custom holidays')
         if add_custom_holidays:
