@@ -99,7 +99,7 @@ def get_data(platform):
 platform_data = {'Gulong.ph': ('sessions', 'purchases_backend_website'),
                  'Mechanigo.ph': ('sessions', 'bookings_ga')}
 
-def make_forecast_dataframe(train_start, train_end, val_end):
+def make_forecast_dataframe(train_start, train_end, val_end = None, forecast_horizon = None):
     '''
     Creates training dataframe and future dataframe
     
@@ -115,7 +115,14 @@ def make_forecast_dataframe(train_start, train_end, val_end):
     
     '''
     evals_index = pd.date_range(start=train_start.strftime('%Y-%m-%d'), end=train_end.strftime('%Y-%m-%d'), freq='D')
-    future_index = pd.date_range(start=train_start.strftime('%Y-%m-%d'), end=val_end.strftime('%Y-%m-%d'), freq='D')
+    if val_end == None:
+        if forecast_horizon == None:
+            future_index = pd.date_range(start=train_start.strftime('%Y-%m-%d'), end=(train_end+timedelta(days=forecast_horizon)).strftime('%Y-%m-%d'), freq='D')
+        else:
+            future_index = pd.date_range(start=train_start.strftime('%Y-%m-%d'), end=(train_end+timedelta(days=forecast_horizon)).strftime('%Y-%m-%d'), freq='D')
+    else:
+        future_index = pd.date_range(start=train_start.strftime('%Y-%m-%d'), end=val_end.strftime('%Y-%m-%d'), freq='D')
+        
     evals = pd.DataFrame(index=evals_index).reset_index()
     future = pd.DataFrame(index=future_index).reset_index()
     return evals, future
@@ -350,13 +357,13 @@ if __name__ == '__main__':
                         'ds': pd.to_datetime(['2022-06-19']),
                         'lower_window': -21,
                         'upper_window': 3})
-        holidays_choices = [fathers_day]
+        holidays_choices = {'fathers_day' : fathers_day}
         
         if add_set_holidays:
             set_holidays = st.multiselect('Set holidays',
-                                          options = [h.loc[0, 'holiday'] for h in holidays_choices],
-                                          default = [h.loc[0, 'holiday'] for h in holidays_choices])
-            holidays.extend(set_holidays)
+                                          options = [holidays_choices[h].loc[0, 'holiday'] for h in holidays_choices.keys()],
+                                          default = [holidays_choices[h].loc[0, 'holiday'] for h in holidays_choices.keys()])
+            holidays.extend([holidays_choices[hol]for hol in set_holidays])
             
         add_custom_holidays = st.checkbox('Custom holidays')
         if add_custom_holidays:
@@ -372,7 +379,6 @@ if __name__ == '__main__':
                                    'upper_window': holiday_upper_window})
             holidays.append(holiday)
         if add_set_holidays or add_custom_holidays:
-            st.write(tuple(holidays))
             models['evals'].holidays = pd.concat(tuple(holidays))
             models['future'].holidays = pd.concat(tuple(holidays))
             holiday_prior_scale = st.number_input('holiday_prior_scale',
@@ -380,7 +386,8 @@ if __name__ == '__main__':
                                                   max_value=50.0,
                                                   value=10.0,
                                                   step=0.05)
-            params['holiday_prior_scale'] = holiday_prior_scale
+            models['evals'].holiday_prior_scale = holiday_prior_scale
+            models['future'].holiday_prior_scale = holiday_prior_scale
         
     
     with st.sidebar.expander('Regressors'):
@@ -438,7 +445,7 @@ if __name__ == '__main__':
         
     with st.sidebar.expander('Metrics'):
         selected_metrics = st.multiselect('Select evaluation metrics',
-                                          options=['MAE', 'MSE', 'RMSE', 'MAPE'],
+                                          options = ['MAE', 'MSE', 'RMSE', 'MAPE'],
                                           default = ['MAE', 'MSE', 'RMSE', 'MAPE'])
     
     st.sidebar.write('4. Forecast')
@@ -451,7 +458,7 @@ if __name__ == '__main__':
                                                value = 15,
                                                step = 1)
             st.info('Forecast dates: \n {} to {}'.format(val_end+timedelta(days=1), 
-                                                   val_end+timedelta(days=15)))
+                                                   val_end+timedelta(days=forecast_horizon)))
         
         # add regressors
     
@@ -462,8 +469,7 @@ if __name__ == '__main__':
         st.header('Model overview')
         models['evals'].params = params
         models['future'].params = params
-        st.write(params)
-        evals, future = make_forecast_dataframe(train_start, train_end, val_end)
+        evals, future = make_forecast_dataframe(train_start, train_end, val_end, forecast_horizon)
         evals = pd.concat([evals, data.loc[evals.index, target_col]], axis=1).rename(columns={'index':'ds',
                                                                       target_col: 'y'})
         
@@ -477,7 +483,6 @@ if __name__ == '__main__':
         elif use_floor and floor_type == 'multiplier':
             evals['floor'] = evals['y']*floor
         
-        st.write(evals)
         
         if make_forecast_future: 
             model = models['future']
@@ -488,7 +493,6 @@ if __name__ == '__main__':
             model.fit(evals)
             forecast = model.predict(evals)
         
-        fig = model.plot(forecast)
-        st.pyplot(fig)
+        plot_forecast(data, forecast, target_col, train_end)
         
     
