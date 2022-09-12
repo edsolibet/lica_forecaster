@@ -427,20 +427,16 @@ if __name__ == '__main__':
         elif use_floor and floor_type == 'multiplier':
             evals['floor'] = evals['y']*floor
         
-        st.write(evals.columns)
-        
-        predicts = {'evals': models['evals'].fit(evals),
-                    'future': models['future'].fit(future)}
-        
-        forecasts = {'evals': predicts['evals'].predict(evals),
-                     'future': predicts['future'].predict(future)}
+        st.write(evals)
         
         if make_forecast_future: 
             model = models['future']
-            forecast = forecasts['future']
+            model.fit(evals)
+            forecast = model.predict(future)
         else:
             model = models['evals']
-            forecast = forecasts['evals']
+            model.fit(evals)
+            forecast = model.predict(evals)
         
         fig = model.plot(forecast)
         st.plotly_chart(fig)
