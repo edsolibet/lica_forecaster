@@ -416,6 +416,7 @@ if __name__ == '__main__':
         evals, future = make_forecast_dataframe(train_start, train_end, val_end)
         evals = pd.concat([evals, data.loc[evals.index, target_col]], axis=1).rename(columns={'index':'ds',
                                                                       target_col: 'y'})
+        
         if use_cap and cap_type == 'fixed':
             evals['cap'] = cap
         elif use_cap and cap_type == 'multiplier':
@@ -428,8 +429,11 @@ if __name__ == '__main__':
         
         st.write(evals.columns)
         
-        forecasts = {'evals': models['evals'].fit(evals).predict(evals),
-                     'future': models['future'].fit(future).predict(future)}
+        predicts = {'evals': models['evals'].fit(evals),
+                    'future': models['future'].fit(future)}
+        
+        forecasts = {'evals': predicts['evals'].predict(evals),
+                     'future': predicts['future'].predict(future)}
         
         if make_forecast_future: 
             model = models['future']
