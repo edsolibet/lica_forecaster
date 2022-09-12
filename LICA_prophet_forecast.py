@@ -441,8 +441,7 @@ if __name__ == '__main__':
             model.fit(evals)
             forecast = model.predict(evals)
         
-        fig = plot_plotly(model, forecast,
-                          ylabel=target_col)
-        st.plotly_chart(fig)
+        fig = model.plot(forecast)
+        st.pyplot(fig)
         
     
