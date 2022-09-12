@@ -127,7 +127,7 @@ def make_forecast_dataframe(train_start, train_end, val_end = None, forecast_hor
 
 def plot_forecast(data, forecast, param, end_train):
     
-    dataset = data[data.index.isin(forecast.set_index('ds').index)]
+    dataset = data[data.set_index('date').index.isin(forecast.set_index('ds').index)]
     
     fig = go.Figure([
                 go.Scatter(
