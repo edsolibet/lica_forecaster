@@ -390,6 +390,7 @@ if __name__ == '__main__':
     if launch_forecast:
         st.header('Model overview')
         m.params = params
+        st.write(m.params)
         
     
     
