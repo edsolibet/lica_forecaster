@@ -18,7 +18,9 @@ import streamlit as st
 
 # Modelling and Forecasting
 # =============================================================================
-from prophet import Prophet
+#from prophet import Prophet
+from fbprophet import Prophet
+from fbprophet.plot import plot_plotly
 from prophet.diagnostics import cross_validation
 from prophet.diagnostics import performance_metrics
 from prophet.utilities import regressor_coefficients
@@ -439,7 +441,8 @@ if __name__ == '__main__':
             model.fit(evals)
             forecast = model.predict(evals)
         
-        fig = model.plot(forecast)
+        fig = plot_plotly(model, forecast,
+                          ylabel=target_col)
         st.plotly_chart(fig)
         
     
