@@ -350,13 +350,13 @@ if __name__ == '__main__':
                         'ds': pd.to_datetime(['2022-06-19']),
                         'lower_window': -21,
                         'upper_window': 3})
-        holidays_choices = {'fathers_day' : fathers_day}
+        holidays_choices = [fathers_day]
         
         if add_set_holidays:
             set_holidays = st.multiselect('Set holidays',
-                                          options = [holidays_choices[h].loc[0, 'holiday'] for h in holidays_choices.keys()],
-                                          default = [holidays_choices[h].loc[0, 'holiday'] for h in holidays_choices.keys()])
-            holidays.extend([holidays_choices[hol]for hol in set_holidays])
+                                          options = [h.loc[0, 'holiday'] for h in holidays_choices],
+                                          default = [h.loc[0, 'holiday'] for h in holidays_choices])
+            holidays.extend(set_holidays)
             
         add_custom_holidays = st.checkbox('Custom holidays')
         if add_custom_holidays:
