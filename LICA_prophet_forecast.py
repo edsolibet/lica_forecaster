@@ -426,6 +426,8 @@ if __name__ == '__main__':
         elif use_floor and floor_type == 'multiplier':
             evals['floor'] = evals['y']*floor
         
+        st.write(evals.columns)
+        
         forecasts = {'evals': models['evals'].fit(evals).predict(evals),
                      'future': models['future'].fit(future).predict(future)}
         
