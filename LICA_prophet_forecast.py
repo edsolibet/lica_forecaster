@@ -18,9 +18,7 @@ import streamlit as st
 
 # Modelling and Forecasting
 # =============================================================================
-#from prophet import Prophet
-from fbprophet import Prophet
-from fbprophet.plot import plot_plotly
+from prophet import Prophet
 from prophet.diagnostics import cross_validation
 from prophet.diagnostics import performance_metrics
 from prophet.utilities import regressor_coefficients
