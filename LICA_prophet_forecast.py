@@ -330,7 +330,7 @@ if __name__ == '__main__':
         growth_type = st.selectbox('growth',
                                    options=['logistic', 'linear'],
                                    index = 0)
-        params['growth'] = growth_type
+        m.growth = growth_type
     
     st.sidebar.write('3. Evaluation')
     with st.sidebar.expander('Data Split'):
@@ -389,7 +389,7 @@ if __name__ == '__main__':
     # start forecast results
     if launch_forecast:
         st.header('Model overview')
-        st.write(m.params)
+        m.params = params
         
     
     
