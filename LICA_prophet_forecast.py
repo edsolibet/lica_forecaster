@@ -308,7 +308,7 @@ if __name__ == '__main__':
                                           options = [h.loc[0, 'holiday'] for h in holidays_choices],
                                           default = [h.loc[0, 'holiday'] for h in holidays_choices])
             holidays.append(set_holidays)
-        
+            
         add_custom_holidays = st.checkbox('Custom holidays')
         if add_custom_holidays:
             holiday_name = st.text_input('Holiday name')
@@ -322,7 +322,8 @@ if __name__ == '__main__':
                                    'lower_window': holiday_lower_window,
                                    'upper_window': holiday_upper_window})
             holidays.append(holiday)
-        if add_holidays or add_set_holidays or add_custom_holidays:
+        if add_set_holidays or add_custom_holidays:
+            st.write(tuple(holidays))
             models['evals'].holidays = pd.concat(tuple(holidays))
             models['future'].holidays = pd.concat(tuple(holidays))
             holiday_prior_scale = st.number_input('holiday_prior_scale',
