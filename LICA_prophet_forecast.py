@@ -323,8 +323,8 @@ if __name__ == '__main__':
                                    'upper_window': holiday_upper_window})
             holidays.append(holiday)
         if add_holidays or add_set_holidays or add_custom_holidays:
-            models['evals'].holidays = holidays
-            models['future'].holidays = holidays
+            models['evals'].holidays = pd.concat(holidays)
+            models['future'].holidays = pd.concat(holidays)
             holiday_prior_scale = st.number_input('holiday_prior_scale',
                                                   min_value=0.05,
                                                   max_value=50.0,
