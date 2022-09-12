@@ -459,7 +459,8 @@ if __name__ == '__main__':
                                                step = 1)
             st.info('Forecast dates: \n {} to {}'.format(val_end+timedelta(days=1), 
                                                    val_end+timedelta(days=forecast_horizon)))
-        
+    else:
+        forecast_horizon = None
         # add regressors
     
     launch_forecast = st.sidebar.checkbox('Launch forecast')
