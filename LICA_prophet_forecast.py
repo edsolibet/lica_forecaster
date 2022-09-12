@@ -152,7 +152,7 @@ if __name__ == '__main__':
                                                   max_value=50.0,
                                                   value=15.0,
                                                   step=0.05)
-        params['n_change_points'] = n_changepoints
+        params['n_changepoints'] = n_changepoints
         params['changepoint_prior_scale'] = changepoint_prior_scale
         
     with st.sidebar.expander('Cap and floor'):
@@ -282,10 +282,12 @@ if __name__ == '__main__':
                         'ds': pd.to_datetime(['2022-06-19']),
                         'lower_window': -21,
                         'upper_window': 3})
+        holidays_choices = [fathers_day]
+        
         if add_set_holidays:
             set_holidays = st.multiselect('Set holidays',
-                                          options = [fathers_day.loc[0, 'holiday']],
-                                          default = [fathers_day.loc[0, 'holiday']])
+                                          options = [h.loc[0, 'holiday'] for h in holidays_choices],
+                                          default = [h.loc[0, 'holiday'] for h in holidays_choices])
             holidays.append(set_holidays)
         
         add_custom_holidays = st.checkbox('Custom holidays')
@@ -316,14 +318,19 @@ if __name__ == '__main__':
         selected_regressors = st.multiselect('Select external metrics if any:',
                        options= regressors)
         
+        
     with st.sidebar.expander('Other parameters'):
         changepoint_range = st.number_input('changepoint_range',
                                             min_value=0.1,
                                             max_value=1.0,
                                             value=0.8,
                                             step=0.1)
+        params['changepoint_range'] = changepoint_range
+        
         growth_type = st.selectbox('growth',
-                                   options=['logistic', 'linear'])
+                                   options=['logistic', 'linear'],
+                                   index = 0)
+        params['growth'] = growth_type
     
     st.sidebar.write('3. Evaluation')
     with st.sidebar.expander('Data Split'):
@@ -382,14 +389,7 @@ if __name__ == '__main__':
     # start forecast results
     if launch_forecast:
         st.header('Model overview')
-        params = {'growth': growth_type,
-                  'n_changepoints' : n_changepoints,
-                  'changepoint_prior_scale': changepoint_prior_scale,
-                  'seasonality_prior_scale' : seasonality_prior_scale,
-                  'holiday_prior_scale' : holiday_prior_scale,
-                  'seasonality_mode': seasonality_mode,
-                  'changepoint_range' : changepoint_range
-                  }
+        st.write(m.params)
         
     
     
