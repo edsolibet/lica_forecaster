@@ -5,6 +5,7 @@ selenium==4.2.0
 streamlit-aggrid
 scikit-learn
 seaborn
+fbprophet
 prophet
 requests
 openpyxl
