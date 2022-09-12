@@ -99,25 +99,27 @@ def get_data(platform):
 platform_data = {'Gulong.ph': ('sessions', 'purchases_backend_website'),
                  'Mechanigo.ph': ('sessions', 'bookings_ga')}
 
-def extra_inputs(value, seasonality: str):
-    if value == 'custom':
-        additional_selectboxes = st.empty()
-        with additional_selectboxes.container():
-            mode = st.selectbox(seasonality + ' mode',
-                                ('multiplicative', 'additive'))
-            order = st.number_input(seasonality + ' order',
-                                    min_value = 1,
-                                    max_value=30,
-                                    value=5,
-                                    step=1)
-            prior_scale = st.number_input(seasonality + ' prior scale',
-                                    min_value = 1.0,
-                                    max_value=30.0,
-                                    value=8.0,
-                                    step=1.0)
-        return mode, order, prior_scale
-    else:
-        pass 
+def make_forecast_dataframe(train_start, train_end, val_end):
+    '''
+    Creates training dataframe and future dataframe
+    
+    Parameters
+    ----------
+    train: dataframe
+        Training data set
+    end: string
+        Ending date of forecast interval
+    
+    Returns
+    -------
+    
+    '''
+    evals_index = pd.date_range(start=train_start.strftime('%Y-%m-%d'), end=train_end.strftime('%Y-%m-%d'), freq='D')
+    future_index = pd.date_range(start=train_start.strftime('%Y-%m-%d'), end=val_end.strftime('%Y-%m-%d'), freq='D')
+    evals = pd.DataFrame(index=evals_index).reset_index()
+    future = pd.DataFrame(index=future_index).reset_index()
+    return evals, future
+
 
 
 if __name__ == '__main__':
@@ -135,7 +137,8 @@ if __name__ == '__main__':
         
     st.sidebar.write('2. Modelling')
     # set base Prophet model
-    m = Prophet()
+    models = {'evals': Prophet(),
+              'future': Prophet()}
     # set params dict
     params = {}
     
@@ -212,8 +215,13 @@ if __name__ == '__main__':
                                                            max_value=30.0,
                                                            value=8.0,
                                                            step=1.0)
-                m.yearly_seasonality = False
-                m.add_seasonality('yearly',
+                models['evals'].yearly_seasonality = False
+                models['future'].yearly_seasonality = False
+                models['evals'].add_seasonality('yearly',
+                                  period = 365,
+                                  fourier_order = yearly_seasonality_order,
+                                  prior_scale = yearly_seasonality_prior_scale)
+                models['future'].add_seasonality('yearly',
                                   period = 365,
                                   fourier_order = yearly_seasonality_order,
                                   prior_scale = yearly_seasonality_prior_scale)
@@ -236,8 +244,13 @@ if __name__ == '__main__':
                                                        max_value=30.0,
                                                        value=8.0,
                                                        step=1.0)
-            m.monthly_seasonality = False
-            m.add_seasonality('monthly',
+            models['evals'].monthly_seasonality = False
+            models['future'].monthly_seasonality = False
+            models['evals'].add_seasonality('monthly',
+                              period = 30,
+                              fourier_order = monthly_seasonality_order,
+                              prior_scale = monthly_seasonality_prior_scale)
+            models['future'].add_seasonality('monthly',
                               period = 30,
                               fourier_order = monthly_seasonality_order,
                               prior_scale = monthly_seasonality_prior_scale)
@@ -261,8 +274,13 @@ if __name__ == '__main__':
                                                        max_value=30.0,
                                                        value=8.0,
                                                        step=1.0)
-            m.weekly_seasonality = False
-            m.add_seasonality('monthly',
+            models['evals'].weekly_seasonality = False
+            models['evals'].add_seasonality('weekly',
+                              period = 7,
+                              fourier_order = weekly_seasonality_order,
+                              prior_scale = weekly_seasonality_prior_scale)
+            models['future'].weekly_seasonality = False
+            models['future'].add_seasonality('weekly',
                               period = 7,
                               fourier_order = weekly_seasonality_order,
                               prior_scale = weekly_seasonality_prior_scale)
@@ -273,7 +291,8 @@ if __name__ == '__main__':
     with st.sidebar.expander('Holidays'):
         add_holidays = st.checkbox('Public holidays')
         if add_holidays:
-            m.add_country_holidays(country_name='PH')
+            models['evals'].add_country_holidays(country_name='PH')
+            models['future'].add_country_holidays(country_name='PH')
         
         add_set_holidays = st.checkbox('Set holidays')
         holidays = []
@@ -304,7 +323,8 @@ if __name__ == '__main__':
                                    'upper_window': holiday_upper_window})
             holidays.append(holiday)
         if add_holidays or add_set_holidays or add_custom_holidays:
-            m.holidays = holidays
+            models['evals'].holidays = holidays
+            models['future'].holidays = holidays
             holiday_prior_scale = st.number_input('holiday_prior_scale',
                                                   min_value=0.05,
                                                   max_value=50.0,
@@ -330,7 +350,8 @@ if __name__ == '__main__':
         growth_type = st.selectbox('growth',
                                    options=['logistic', 'linear'],
                                    index = 0)
-        m.growth = growth_type
+        models['evals'].growth = growth_type
+        models['future'].growth = growth_type
     
     st.sidebar.write('3. Evaluation')
     with st.sidebar.expander('Data Split'):
@@ -389,8 +410,23 @@ if __name__ == '__main__':
     # start forecast results
     if launch_forecast:
         st.header('Model overview')
-        m.params = params
-        st.write(m.params)
+        models['evals'].params = params
+        models['future'].params = params
+        st.write(params)
+        evals, future = make_forecast_dataframe(train_start, train_end, val_end)
+        evals = pd.concat([evals, data.loc[evals.index, target_col]], axis=1).rename(columns={'index':'ds',
+                                                                      target_col: 'y'})
+        forecasts = {'evals': models['evals'].predict(evals),
+                     'future': models['future'].predict(future)}
         
-    
+        if make_forecast_future: 
+            model = models['future']
+            forecast = forecasts['future']
+        else:
+            model = models['evals']
+            forecast = forecasts['evals']
+        
+        fig = model.plot(forecast)
+        st.plotly_chart(fig)
+        
     
