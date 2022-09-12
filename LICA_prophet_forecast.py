@@ -127,7 +127,7 @@ def make_forecast_dataframe(train_start, train_end, val_end = None, forecast_hor
     future = pd.DataFrame(index=future_index).reset_index()
     return evals, future
 
-def plot_forecast(data, forecast, param, end_train, end_pred):
+def plot_forecast(data, forecast, param, end_train):
     
     dataset = data[data.index.isin(forecast.set_index('ds').index)]
     
