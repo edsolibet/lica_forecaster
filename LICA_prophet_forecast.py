@@ -416,8 +416,9 @@ if __name__ == '__main__':
         evals, future = make_forecast_dataframe(train_start, train_end, val_end)
         evals = pd.concat([evals, data.loc[evals.index, target_col]], axis=1).rename(columns={'index':'ds',
                                                                       target_col: 'y'})
-        forecasts = {'evals': models['evals'].predict(evals),
-                     'future': models['future'].predict(future)}
+
+        forecasts = {'evals': models['evals'].fit(evals).predict(evals),
+                     'future': models['future'].fit(future).predict(future)}
         
         if make_forecast_future: 
             model = models['future']
