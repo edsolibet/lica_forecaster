@@ -474,13 +474,16 @@ if __name__ == '__main__':
         
         if use_cap and cap_type == 'fixed':
             evals['cap'] = cap
+            future['cap'] = cap
         elif use_cap and cap_type == 'multiplier':
             evals['cap'] = evals['y']*cap
-
+            future['cap'] = evals['y']*cap
         if use_floor and floor_type == 'fixed':
             evals['floor'] = floor
+            future['floor'] = floor
         elif use_floor and floor_type == 'multiplier':
             evals['floor'] = evals['y']*floor
+            future['floor'] = evals['y']*floor
         
         
         if make_forecast_future: 
