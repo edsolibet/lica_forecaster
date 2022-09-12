@@ -99,7 +99,7 @@ def get_data(platform):
 platform_data = {'Gulong.ph': ('sessions', 'purchases_backend_website'),
                  'Mechanigo.ph': ('sessions', 'bookings_ga')}
 
-def make_forecast_dataframe(train_start, train_end, val_end = None, forecast_horizon = None):
+def make_forecast_dataframe(train_start, train_end, val_end = None, forecast_horizon = 0):
     '''
     Creates training dataframe and future dataframe
     
@@ -116,10 +116,8 @@ def make_forecast_dataframe(train_start, train_end, val_end = None, forecast_hor
     '''
     evals_index = pd.date_range(start=train_start.strftime('%Y-%m-%d'), end=train_end.strftime('%Y-%m-%d'), freq='D')
     if val_end == None:
-        if forecast_horizon == None:
-            future_index = pd.date_range(start=train_start.strftime('%Y-%m-%d'), end=(train_end+timedelta(days=forecast_horizon)).strftime('%Y-%m-%d'), freq='D')
-        else:
-            future_index = pd.date_range(start=train_start.strftime('%Y-%m-%d'), end=(train_end+timedelta(days=forecast_horizon)).strftime('%Y-%m-%d'), freq='D')
+        future_index = pd.date_range(start=train_start.strftime('%Y-%m-%d'), end=(train_end+timedelta(days=forecast_horizon)).strftime('%Y-%m-%d'), freq='D')
+
     else:
         future_index = pd.date_range(start=train_start.strftime('%Y-%m-%d'), end=val_end.strftime('%Y-%m-%d'), freq='D')
         
@@ -460,7 +458,7 @@ if __name__ == '__main__':
             st.info('Forecast dates: \n {} to {}'.format(val_end+timedelta(days=1), 
                                                    val_end+timedelta(days=forecast_horizon)))
     else:
-        forecast_horizon = None
+        forecast_horizon = 0
         # add regressors
     
     launch_forecast = st.sidebar.checkbox('Launch forecast')
