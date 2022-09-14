@@ -246,7 +246,7 @@ def add_regressors(model, temp_df, future, exogs=None, time_diff=1, regs=None):
         for exog in exogs.columns:
             temp_df.loc[time_diff:, exog] =  exogs.loc[start_train:new_end][exog].values
             #future.loc[time_diff-1:, exog] = traffic_data_.loc[start_train:][exog].values
-            future.loc[time_diff:, exog] = exogs.reset_index().iloc[-len(future.loc[time_diff-1:]):][exog].values
+            future.loc[time_diff:, exog] = exogs.reset_index().iloc[-len(future.loc[time_diff:]):][exog].values
             m = m.add_regressor(exog)
     return m, temp_df.loc[time_diff:], future.loc[time_diff:]
 
@@ -321,6 +321,7 @@ def plot_forecast_(data, forecast, param, end_train, end_pred):
     # Change grid color and axis colors
     fig.update_xaxes(showline=True, linewidth=2, linecolor='black', gridcolor='#696969')
     fig.update_yaxes(showline=True, linewidth=2, linecolor='black', gridcolor='#696969')
+    fig.show()
     st.plotly_chart(fig, use_container_width=True)
 
 
@@ -407,26 +408,33 @@ def calc_yhat(forecast, coefs, model):
     return df_yhat
 
 
+platform_data = {'Gulong.ph': ('sessions', 'purchases_backend_website'),
+                 'Mechanigo.ph': ('sessions', 'bookings_ga')}
+
 # dictionary for to for setting prediction horizon from date today
 predict_horizon_dict = {'7 days': 7,
                         '15 days': 15,
                         '30 days' : 30}
 
 if __name__ == '__main__':
-    st.title('LICA Target Setting App')
+    st.title('LICA Target Setting and Forecasting App')
     st.markdown('''
                 This tool forecasts the future values of important metrics to be used
                 for target setting.
                 ''')
-    platform = st.sidebar.selectbox('Select platform',
-                                    ('Gulong.ph', 'Mechanigo.ph'))
-    
-    if platform == 'Gulong.ph':
-        param  = st.sidebar.selectbox('Metric to Forecast',
-                              ('sessions', 'purchases_backend_website'))
-    elif platform == 'Mechanigo.ph':
-        param  = st.sidebar.selectbox('Metric to Forecast',
-                              ('sessions', 'website bookings'))
+    st.sidebar.write('1. Data')
+    with st.sidebar.expander('Data selection'):
+        platform = st.sidebar.selectbox('Select platform',
+                                        ('Gulong.ph', 'Mechanigo.ph'))
+        data = get_data(platform)
+        
+    with st.sidebar.expander('Columns'):
+        date_col = st.selectbox('Date column', data.columns[data.dtypes=='datetime64[ns]'],
+                                index=0)
+        param = st.selectbox('Target column:', platform_data[platform],
+                                  index=0)
+        
+        
     predict_horizon = st.sidebar.selectbox('Prediction horizon:',
                                            ('7 days', '15 days', '30 days'))
     
@@ -441,13 +449,13 @@ if __name__ == '__main__':
                         value = True,
                         key = 'regressors_model')
     
-    traffic_data = get_data()
+    
     start_train = '2022-03-01'
-    end_train = traffic_data.index.max().strftime('%Y-%m-%d')
+    end_train = data.index.max().strftime('%Y-%m-%d')
     today = date.today().strftime('%Y-%m-%d')
     end_predict = (pd.to_datetime(today) 
                    + timedelta(days=predict_horizon_dict[predict_horizon])).strftime('%Y-%m-%d')
-    data_train = traffic_data.loc[start_train: end_train, :]
+    data_train = data.loc[start_train: end_train, :]
     
     # get time difference between end of prediction horizon and end of training
     time_diff = (pd.to_datetime(end_predict) - pd.to_datetime(end_train)).days
@@ -477,9 +485,9 @@ if __name__ == '__main__':
         m.holidays = holidays
         
         holiday_scale_dict = {'sessions': 3,
-                              'purchases_backend_website': 3}
+                              'purchases_backend_website': 5}
         
-        m.holiday_prior_scale = 3
+        m.holiday_prior_scale = holiday_scale_dict[param]
         
         
     if season_model:
@@ -489,20 +497,20 @@ if __name__ == '__main__':
         m.yearly_seasonality = False
         m = add_seasonality(m, seasonality_dict) # add seasonality
         
-        seasonality_scale_dict = {'sessions': 15,
+        seasonality_scale_dict = {'sessions': 12,
                                   'purchases_backend_website': 5}
         
         m.seasonality_prior_scale = seasonality_scale_dict[param]
     # add regressors and exogenous variables
     if regressor_model:
         kw_list =['gulong.ph', 'gogulong']
-        traffic_data.loc[:, exog_num_cols[param]] = traffic_data.loc[:, exog_num_cols[param]].fillna(0)
+        data.loc[:, exog_num_cols[param]] = data.loc[:, exog_num_cols[param]].fillna(0)
         if kw_list:
             gtrend_data = get_gtrend_data(kw_list, start_train, end_train)
             gtrend_data.index = pd.to_datetime(gtrend_data.index)
-            exogs = pd.concat([traffic_data.loc[start_train:,exog_num_cols[param]], gtrend_data], axis=1)
+            exogs = pd.concat([data.loc[start_train:,exog_num_cols[param]], gtrend_data], axis=1)
         else:
-            exogs = traffic_data.loc[start_train, exog_num_cols[param]]
+            exogs = data.loc[start_train:, exog_num_cols[param]]
         m, temp_df, future = add_regressors(m, temp_df, future, exogs, time_diff, regs)
     
     # fit model
@@ -512,12 +520,12 @@ if __name__ == '__main__':
     for pred in ['yhat', 'yhat_lower', 'yhat_upper']:
         forecast.loc[:, pred] = forecast.loc[:, pred].apply(lambda x: 0 if x < 0 else x)
     
-    y_true = traffic_data.loc['2022-08-01':'2022-08-28', param].fillna(0)
+    y_true = data.loc['2022-08-01':'2022-08-28', param].fillna(0)
     y_pred = forecast.set_index('ds').loc['2022-08-01':'2022-08-28', 'yhat'].fillna(0)
     error = np.sqrt(mean_squared_error(y_true, y_pred))
     
     # plot
-    plot_forecast_(traffic_data, forecast, param, end_train, end_predict)
+    plot_forecast_(data, forecast, param, end_train, end_predict)
     
     st.write('Total predicted:')
     yhat = round(forecast.iloc[-predict_horizon_dict[predict_horizon]:].yhat.sum())
@@ -529,6 +537,6 @@ if __name__ == '__main__':
     if len(exog_num_cols[param]) or len(regs.keys()):
         regressor_coefs = regressor_coefficients(m).set_index('regressor')
         
-    
+    # average daily value of parameters
    
     
