@@ -177,6 +177,8 @@ def plot_forecast(data, forecast, param, end_train):
     st.plotly_chart(fig, use_container_width=True)
 
 if __name__ == '__main__':
+    # DATA
+    # =========================================================================
     st.sidebar.write('1. Data')
     with st.sidebar.expander('Data selection'):
         platform = st.selectbox('Select platform',
@@ -188,15 +190,45 @@ if __name__ == '__main__':
                                 index=0)
         target_col = st.selectbox('Target column:', platform_data[platform],
                                   index=0)
-        
-    st.sidebar.write('2. Modelling')
-    # set base Prophet model
-    models = {'evals': Prophet(),
-              'future': Prophet()}
+    
+    with st.sidebar.expander('Data Split'):
+        st.write('Training dataset')
+        tcol1, tcol2 = st.columns(2)
+        date_series = pd.to_datetime(data.loc[:,date_col])
+        with tcol1:
+            train_start = st.date_input('Training data start date',
+                                        value = pd.to_datetime('2022-03-01'),
+                                        min_value=date_series.min().date(),
+                                        max_value=date_series.max().date())
+        with tcol2:
+            train_end = st.date_input('Training data end date',
+                                        value = pd.to_datetime('2022-07-31'),
+                                        min_value= pd.to_datetime('2022-04-01'),
+                                        max_value=date_series.max().date())
+        if train_start >= train_end:
+            st.error('Training data end should come after training data start.')
+            
+        st.write('Validation dataset')
+        vcol1, vcol2 = st.columns(2)
+        with vcol1:
+            val_start = st.date_input('Validation data start date',
+                                        value = train_end + timedelta(days=1),
+                                        min_value=train_end + timedelta(days=1),
+                                        max_value=date_series.max().date())
+        with vcol2:
+            val_end = st.date_input('Validation data end date',
+                                        value = date_series.max().date(),
+                                        min_value= val_start + timedelta(days=1),
+                                        max_value=date_series.max().date())
+        if val_start >= val_end:
+            st.error('Validation data end should come after validation data start.')
+    
+    # MODELLING
+    # =========================================================================
+
     # set params dict
     params = {}
     
-        
     with st.sidebar.expander('Changepoints'):
         
         n_changepoints = st.slider('Number of changepoints',
@@ -238,6 +270,12 @@ if __name__ == '__main__':
                                       min_value = 0,
                                       value = 0)
     
+    # set base Prophet model
+    # =========================================================================
+    models = {'evals': Prophet(**params),
+              'future': Prophet(**params)}
+    
+    st.sidebar.write('2. Modelling')
     with st.sidebar.expander('Seasonalities'):
         # yearly
         seasonality_mode = st.selectbox('seasonality_mode',
@@ -281,6 +319,7 @@ if __name__ == '__main__':
                                   prior_scale = yearly_seasonality_prior_scale)
         else:
             params['yearly_seasonality'] = yearly_seasonality
+        
         # monthly
         monthly_seasonality = st.selectbox('monthly_seasonality', 
                                           ('auto', False, 'custom'))
@@ -361,7 +400,7 @@ if __name__ == '__main__':
             set_holidays = st.multiselect('Set holidays',
                                           options = [holidays_choices[h].loc[0, 'holiday'] for h in holidays_choices.keys()],
                                           default = [holidays_choices[h].loc[0, 'holiday'] for h in holidays_choices.keys()])
-            holidays.extend([holidays_choices[hol]for hol in set_holidays])
+            holidays.extend([holidays_choices[hol] for hol in set_holidays])
             
         add_custom_holidays = st.checkbox('Custom holidays')
         if add_custom_holidays:
@@ -409,37 +448,7 @@ if __name__ == '__main__':
         models['future'].growth = growth_type
     
     st.sidebar.write('3. Evaluation')
-    with st.sidebar.expander('Data Split'):
-        st.write('Training dataset')
-        tcol1, tcol2 = st.columns(2)
-        date_series = pd.to_datetime(data.loc[:,date_col])
-        with tcol1:
-            train_start = st.date_input('Training data start date',
-                                        value = pd.to_datetime('2022-03-01'),
-                                        min_value=date_series.min().date(),
-                                        max_value=date_series.max().date())
-        with tcol2:
-            train_end = st.date_input('Training data end date',
-                                        value = pd.to_datetime('2022-07-31'),
-                                        min_value= pd.to_datetime('2022-04-01'),
-                                        max_value=date_series.max().date())
-        if train_start >= train_end:
-            st.error('Training data end should come after training data start.')
-            
-        st.write('Validation dataset')
-        vcol1, vcol2 = st.columns(2)
-        with vcol1:
-            val_start = st.date_input('Validation data start date',
-                                        value = train_end + timedelta(days=1),
-                                        min_value=train_end + timedelta(days=1),
-                                        max_value=date_series.max().date())
-        with vcol2:
-            val_end = st.date_input('Validation data end date',
-                                        value = date_series.max().date(),
-                                        min_value= val_start + timedelta(days=1),
-                                        max_value=date_series.max().date())
-        if val_start >= val_end:
-            st.error('Validation data end should come after validation data start.')
+    
         
     with st.sidebar.expander('Metrics'):
         selected_metrics = st.multiselect('Select evaluation metrics',
