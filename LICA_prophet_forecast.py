@@ -289,13 +289,17 @@ if __name__ == '__main__':
     models = {'evals': Prophet(**params),
               'future': Prophet(**params)}
     
+    # MODELLING
+    # =========================================================================
     st.sidebar.write('2. Modelling')
     with st.sidebar.expander('Seasonalities'):
         # yearly
         seasonality_mode = st.selectbox('seasonality_mode',
                                         options = ['multiplicative', 'additive'],
                                         index = 0)
-        params['seasonality_mode'] = seasonality_mode
+        models['evals'].seasonality_mode = seasonality_mode
+        models['future'].seasonality_mode = seasonality_mode
+        
         season_index = 0 if seasonality_mode == 'multiplicative' else 1
         
         seasonality_prior_scale = st.number_input('seasonality_prior_scale',
@@ -303,7 +307,9 @@ if __name__ == '__main__':
                                                   max_value=50.0,
                                                   value=10.0,
                                                   step=0.05)
-        params['seasonality_prior_scale'] = seasonality_prior_scale
+
+        models['evals'].seasonality_prior_scale = seasonality_prior_scale
+        models['future'].seasonality_prior_scale = seasonality_prior_scale
         
         yearly_seasonality = st.selectbox('yearly_seasonality', 
                                           ('auto', False, 'custom'))
@@ -332,7 +338,8 @@ if __name__ == '__main__':
                                   fourier_order = yearly_seasonality_order,
                                   prior_scale = yearly_seasonality_prior_scale)
         else:
-            params['yearly_seasonality'] = yearly_seasonality
+            models['evals'].yearly_seasonality = yearly_seasonality
+            models['future'].yearly_seasonality = yearly_seasonality
         
         # monthly
         monthly_seasonality = st.selectbox('monthly_seasonality', 
@@ -362,7 +369,8 @@ if __name__ == '__main__':
                               fourier_order = monthly_seasonality_order,
                               prior_scale = monthly_seasonality_prior_scale)
         else:
-            params['monthly_seasonality'] = monthly_seasonality
+            models['evals'].monthly_seasonality = monthly_seasonality
+            models['future'].monthly_seasonality = monthly_seasonality
             
         # weekly
         weekly_seasonality = st.selectbox('weekly_seasonality', 
@@ -392,7 +400,8 @@ if __name__ == '__main__':
                               fourier_order = weekly_seasonality_order,
                               prior_scale = weekly_seasonality_prior_scale)
         else:
-            params['weekly_seasonality'] = weekly_seasonality
+            models['evals'].weekly_seasonality = weekly_seasonality
+            models['future'].weekly_seasonality = weekly_seasonality
             
     
     with st.sidebar.expander('Holidays'):
@@ -447,8 +456,6 @@ if __name__ == '__main__':
                        options= regressors)
         
         
-    
-    
         
     with st.sidebar.expander('Metrics'):
         selected_metrics = st.multiselect('Select evaluation metrics',
