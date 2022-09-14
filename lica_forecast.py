@@ -59,18 +59,29 @@ def ratio(a, b):
     return a/b if b else 0
 
 @st.experimental_memo
-def get_data():
-    
+def get_data(platform):
+    '''
+    Imports data based on selected platform
+    '''
     # Data download
     # =========================================================================
-    sheet_id = "17Yb2nYaf_0KHQ1dZBGBJkXDcpdht5aGE"
-    sheet_name = 'summary'
-    url = "https://docs.google.com/spreadsheets/export?exportFormat=xlsx&id=" + sheet_id
+    if platform == "Gulong.ph":
+        # https://docs.google.com/spreadsheets/d/17Yb2nYaf_0KHQ1dZBGBJkXDcpdht5aGE/edit?rtpof=true#gid=1145755332
+        sheet_id = "17Yb2nYaf_0KHQ1dZBGBJkXDcpdht5aGE"
+        sheet_name = 'summary'
+        url = "https://docs.google.com/spreadsheets/export?exportFormat=xlsx&id=" + sheet_id
+        
+    elif platform=='Mechanigo.ph':
+        # https://docs.google.com/spreadsheets/d/18_Kwp3izJWlO2HSjrjULl3ydhnMS0KHY/edit#gid=49034711
+        sheet_id = "18_Kwp3izJWlO2HSjrjULl3ydhnMS0KHY"
+        sheet_name = 'summary'
+        url = "https://docs.google.com/spreadsheets/export?exportFormat=xlsx&id=" + sheet_id
+        
     res = requests.get(url)
     data_ = BytesIO(res.content)
     xlsx = openpyxl.load_workbook(filename=data_)
     traffic_data_ = pd.read_excel(data_, sheet_name = sheet_name)
-    
+        
     # Data preparation
     # =========================================================================
     
@@ -82,7 +93,6 @@ def get_data():
     traffic_data_.loc[:, 'weekday'] = traffic_data_.loc[:,'date'].dt.dayofweek + 1
     traffic_data_.loc[:, 'week_of_month'] = traffic_data_.loc[:, 'date'].apply(lambda d: (d.day-1) // 7 + 1)
     traffic_data_.loc[:, 'week_number'] = traffic_data_.apply(lambda x: int(x['date'].strftime('%U')), axis=1)
-    traffic_data_.loc[:, 'week_first_day'] = traffic_data_.apply(lambda x: sunday_of_calendarweek(int(x['year']), int(x['week_number'])), axis=1)
     traffic_data_ = traffic_data_.set_index('date')
     traffic_data_ = traffic_data_.asfreq('1D')
     traffic_data_ = traffic_data_.sort_index()
@@ -96,17 +106,19 @@ def get_data():
     
     traffic_data_.loc[:, 'clicks_total'] = traffic_data_.loc[:,clicks_cols].sum(axis=1)
     traffic_data_.loc[:, 'impressions_total'] = traffic_data_.loc[:,impressions_cols].sum(axis=1)
-    traffic_data_.loc[:, 'purchases_backend_total'] = traffic_data_.loc[:,purchases_backend_cols].sum(axis=1)
-    traffic_data_.loc[:, 'purchases_backend_marketplace'] = traffic_data_.loc[:, 'purchases_backend_fb'] + traffic_data_.loc[:, 'purchases_backend_shopee'] + traffic_data_.loc[:, 'purchases_backend_lazada']
-    traffic_data_.loc[:, 'purchases_backend_b2b'] = traffic_data_.loc[:, 'purchases_backend_b2b'] + traffic_data_.loc[:, 'purchases_backend_walk-in']
-    traffic_data_.drop(labels = ['purchases_backend_shopee', 'purchases_backend_lazada', 
-                                 'purchases_backend_fb', 'purchases_backend_walk-in', 
-                                 'purchases_backend_nan'], axis=1, inplace=True)
-    
     traffic_data_.loc[:, 'ctr_ga'] = traffic_data_.apply(lambda x: ratio(x['link_clicks_ga'], x['impressions_ga']), axis=1)
     traffic_data_.loc[:, 'ctr_fb'] = traffic_data_.apply(lambda x: ratio(x['link_clicks_fb'], x['impressions_fb']), axis=1)
     
-    return traffic_data_
+    if platform == 'Gulong.ph':
+        traffic_data_.loc[:, 'purchases_backend_total'] = traffic_data_.loc[:,purchases_backend_cols].sum(axis=1)
+        traffic_data_.loc[:, 'purchases_backend_marketplace'] = traffic_data_.loc[:, 'purchases_backend_fb'] + traffic_data_.loc[:, 'purchases_backend_shopee'] + traffic_data_.loc[:, 'purchases_backend_lazada']
+        traffic_data_.loc[:, 'purchases_backend_b2b'] = traffic_data_.loc[:, 'purchases_backend_b2b'] + traffic_data_.loc[:, 'purchases_backend_walk-in']
+        traffic_data_.drop(labels = ['purchases_backend_shopee', 'purchases_backend_lazada', 
+                                     'purchases_backend_fb', 'purchases_backend_walk-in', 
+                                     'purchases_backend_nan'], axis=1, inplace=True)
+
+    return traffic_data_.reset_index()
+
 
 def make_forecast_dataframe(train, end, cap=None, floor=None):
     '''
@@ -424,15 +436,16 @@ if __name__ == '__main__':
                 ''')
     st.sidebar.write('1. Data')
     with st.sidebar.expander('Data selection'):
-        platform = st.sidebar.selectbox('Select platform',
-                                        ('Gulong.ph', 'Mechanigo.ph'))
+        platform = st.selectbox('Select platform',
+                                        ('Gulong.ph', 'Mechanigo.ph'),
+                                        index=0)
         data = get_data(platform)
         
     with st.sidebar.expander('Columns'):
         date_col = st.selectbox('Date column', data.columns[data.dtypes=='datetime64[ns]'],
                                 index=0)
         param = st.selectbox('Target column:', platform_data[platform],
-                                  index=0)
+                                index=0)
         
         
     predict_horizon = st.sidebar.selectbox('Prediction horizon:',
