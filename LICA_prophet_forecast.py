@@ -244,6 +244,20 @@ if __name__ == '__main__':
         params['n_changepoints'] = n_changepoints
         params['changepoint_prior_scale'] = changepoint_prior_scale
         
+    with st.sidebar.expander('Other parameters'):
+        changepoint_range = st.number_input('changepoint_range',
+                                            min_value=0.1,
+                                            max_value=1.0,
+                                            value=0.8,
+                                            step=0.1)
+        params['changepoint_range'] = changepoint_range
+        
+        growth_type = st.selectbox('growth',
+                                   options=['logistic', 'linear'],
+                                   index = 0)
+        
+        params['growth'] = growth_type
+    
     with st.sidebar.expander('Cap and floor'):
         use_cap = st.checkbox('Add cap value')
         if use_cap:
@@ -433,21 +447,7 @@ if __name__ == '__main__':
                        options= regressors)
         
         
-    with st.sidebar.expander('Other parameters'):
-        changepoint_range = st.number_input('changepoint_range',
-                                            min_value=0.1,
-                                            max_value=1.0,
-                                            value=0.8,
-                                            step=0.1)
-        params['changepoint_range'] = changepoint_range
-        
-        growth_type = st.selectbox('growth',
-                                   options=['logistic', 'linear'],
-                                   index = 0)
-        models['evals'].growth = growth_type
-        models['future'].growth = growth_type
     
-    st.sidebar.write('3. Evaluation')
     
         
     with st.sidebar.expander('Metrics'):
