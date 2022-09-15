@@ -142,11 +142,7 @@ def make_forecast_dataframe(start, end):
 
 # custom holidays
 # ============================================================================
-fathers_day = pd.DataFrame({
-    'holiday': 'fathers_day',
-    'ds': pd.to_datetime(['2022-06-19']),
-    'lower_window': -21,
-    'upper_window': 3})
+
 
 # add seasonalities
 # ============================================================================
@@ -486,18 +482,18 @@ if __name__ == '__main__':
     # default parameters for target cols
     default_params = {'sessions':{'growth': 'logistic',
               'seasonality_mode': 'multiplicative',
-              'changepoint_prior_scale': 30,
+              'changepoint_prior_scale': 30.0,
               'n_changepoints' : 30,
               },
               'purchases_backend_website':{'growth': 'logistic',
               'seasonality_mode': 'multiplicative',
-              'changepoint_prior_scale': 10,
+              'changepoint_prior_scale': 10.0,
               'n_changepoints' : 20,
               },
               'bookings_ga':{'growth': 'logistic',
               'seasonality_mode': 'multiplicative',
               'changepoint_prior_scale': 10,
-              'n_changepoints' : 20,
+              'n_changepoints' : 20.0,
               }
               }
     
@@ -505,9 +501,7 @@ if __name__ == '__main__':
     with st.sidebar.expander('Model and Growth type'):
         '''
         Select type of growth, cap and floor
-        
-        TO DO:
-            add option to input specific changepoint dates
+    
         '''
         
         growth_type = st.selectbox('growth',
@@ -523,7 +517,7 @@ if __name__ == '__main__':
                 if cap_type == 'fixed':
                     cap = st.number_input('Fixed cap value',
                                           min_value = 0,
-                                          value = 100)
+                                          value = 1000)
                     evals['cap'] = cap
                 elif cap_type == 'multiplier':
                     cap = st.number_input('Cap multiplier',
@@ -596,7 +590,7 @@ if __name__ == '__main__':
                                                       value=float(seasonality_scale_dict[param]),
                                                       step = 1.0)
             else:
-                seasonality_prior_scale = None
+                seasonality_prior_scale = 0
                 
             model.seasonality_prior_scale = seasonality_prior_scale
             
@@ -609,7 +603,7 @@ if __name__ == '__main__':
                                                            max_value=30,
                                                            value=5,
                                                            step=1)
-                if set_seasonality_prior_scale is None:
+                if set_seasonality_prior_scale is False:
                     yearly_prior_scale = st.number_input('Yearly seasonality prior scale',
                                                            min_value = 1.0,
                                                            max_value=30.0,
@@ -629,7 +623,7 @@ if __name__ == '__main__':
                                                            max_value=30,
                                                            value=5,
                                                            step=1)
-                if set_seasonality_prior_scale is None:
+                if set_seasonality_prior_scale is False:
                     monthly_prior_scale = st.number_input('monthly seasonality prior scale',
                                                            min_value = 1.0,
                                                            max_value=30.0,
@@ -649,7 +643,7 @@ if __name__ == '__main__':
                                                            max_value=30,
                                                            value=5,
                                                            step=1)
-                if set_seasonality_prior_scale is None:
+                if set_seasonality_prior_scale is False:
                     weekly_prior_scale = st.number_input('weekly seasonality prior scale',
                                                            min_value = 1.0,
                                                            max_value=30.0,
@@ -671,13 +665,45 @@ if __name__ == '__main__':
             model.monthly_seasonality = False
             model.weekly_seasonality = False
             model.daily_seasonality = False
+    
+    with st.sidebar.expander('Holidays'):
+        holiday_model = st.sidebar.checkbox('Add Holidays', 
+                            value = True,
+                            key = 'holiday_model')
+        if holiday_model:
+            # add holidays
+            add_public_holidays = st.checkbox('Public holidays')
+            if add_public_holidays:
+                model.add_country_holidays(country_name='PH')
+            add_set_holidays = st.checkbox('Saved holidays')
+            if add_set_holidays:
+                fathers_day = pd.DataFrame({
+                    'holiday': 'fathers_day',
+                    'ds': pd.to_datetime(['2022-06-19']),
+                    'lower_window': -21,
+                    'upper_window': 3})
+                holidays = fathers_day
+                model.holidays = holidays
             
-    holiday_model = st.sidebar.checkbox('Holidays', 
-                        value = True,
-                        key = 'holiday_model')
-    regressor_model = st.sidebar.checkbox('Regressors', 
-                        value = True,
-                        key = 'regressors_model')
+            holiday_scale_dict = {'sessions': 3,
+                                  'purchases_backend_website': 5,
+                                  'bookings_ga': 5}
+            
+            holiday_scale = st.number_input('holiday_prior_scale',
+                                            min_value = 1.0,
+                                            max_value = 30.0,
+                                            value = float(holiday_scale_dict[param]),
+                                            step = 1.0)
+            model.holiday_prior_scale = holiday_scale
+            
+        else:
+            model.holidays = None
+            model.holiday_prior_scale = 0
+    
+    with st.sidebar.expander('Regressors'):
+        regressor_model = st.sidebar.checkbox('Add Regressors', 
+                            value = True,
+                            key = 'regressors_model')
     
     
     #end_predict = (pd.to_datetime(today) 
@@ -685,38 +711,15 @@ if __name__ == '__main__':
     #data_train = data.loc[start_train: end_train, :]
     
     # get time difference between end of prediction horizon and end of training
-    time_diff = (pd.to_datetime(end_predict) - pd.to_datetime(end_train)).days
+    #time_diff = (pd.to_datetime(end_predict) - pd.to_datetime(end_train)).days
     
     
 
         
     # create forecast dataframe
-    temp_df, future = make_forecast_dataframe(data_train[param], end_predict, cap = data_train[param].max()*1.25, floor = 0)
+    #temp_df, future = make_forecast_dataframe(data_train[param], end_predict, cap = data_train[param].max()*1.25, floor = 0)
     m = Prophet(**params[param])  # Input param grid
-    # add country and custom holidays
-    if holiday_model:
-        # add holidays
-        holidays = fathers_day
-        m.add_country_holidays(country_name='PH')
-        m.holidays = holidays
         
-        holiday_scale_dict = {'sessions': 3,
-                              'purchases_backend_website': 5}
-        
-        m.holiday_prior_scale = holiday_scale_dict[param]
-        
-        
-    if season_model:
-        m.daily_seasonality = False
-        m.weekly_seasonality = False
-        m.monthly_seasonality = False
-        m.yearly_seasonality = False
-        m = add_seasonality(m, seasonality_dict) # add seasonality
-        
-        seasonality_scale_dict = {'sessions': 12,
-                                  'purchases_backend_website': 5}
-        
-        m.seasonality_prior_scale = seasonality_scale_dict[param]
     # add regressors and exogenous variables
     if regressor_model:
         kw_list =['gulong.ph', 'gogulong']
