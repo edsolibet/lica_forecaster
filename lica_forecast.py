@@ -464,7 +464,7 @@ if __name__ == '__main__':
             st.error('Train_end is outside available dataset.')
     
     with st.sidebar.expander('Forecast:'):
-        make_forecast_future = st.sidebar.checkbox('Make forecast on future dates')
+        make_forecast_future = st.checkbox('Make forecast on future dates')
         if make_forecast_future:
             forecast_horizon = st.number_input('Forecast horizon in days',
                                                min_value = 1,
