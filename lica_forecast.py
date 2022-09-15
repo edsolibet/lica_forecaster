@@ -593,7 +593,7 @@ if __name__ == '__main__':
                 seasonality_prior_scale = st.number_input('overall_seasonality_prior_scale',
                                                       min_value= 1.0,
                                                       max_value= 30.0,
-                                                      value=seasonality_scale_dict[param],
+                                                      value=float(seasonality_scale_dict[param]),
                                                       step = 1.0)
             else:
                 seasonality_prior_scale = None
