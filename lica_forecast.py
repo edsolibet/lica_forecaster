@@ -120,7 +120,7 @@ def get_data(platform):
     return traffic_data_.reset_index()
 
 
-def make_forecast_dataframe(train, end, cap=None, floor=None):
+def make_forecast_dataframe(start, end):
     '''
     Creates training dataframe and future dataframe
     
@@ -135,30 +135,9 @@ def make_forecast_dataframe(train, end, cap=None, floor=None):
     -------
     
     '''
-    index = pd.date_range(start=min(train.index).strftime('%Y-%m-%d'), end=end, freq='D')
-    df_train = train.reset_index()
-    df_future = pd.DataFrame(index=index).reset_index()
-    param = train.reset_index().columns[-1]
-    df_train.rename(columns={'date': 'ds', param : 'y'}, inplace=True)
-    df_future.rename(columns={'index': 'ds', param : 'y'}, inplace=True)
-    if cap is not None:
-        if callable(cap):
-            df_train['cap'] = df_train['y'].apply(cap)
-            df_future.loc[df_train.index.min():df_train.index.max(), 'cap'] = df_train['cap']
-            df_future.loc[df_train.index.max():, 'cap'] = df_train['cap'].max()
-            
-        else:
-            df_future['cap'] = cap
-            df_train['cap'] = cap
-    if floor is not None:
-        if callable(floor):
-            df_train['floor'] = df_train['y'].apply(cap)
-            df_future.loc[df_train.index.min():df_train.index.max(), 'floor'] = df_train['floor']
-            df_future.loc[df_train.index.max():, 'floor'] = df_train['floor'].min()
-        else:
-            df_future['floor'] = floor
-            df_train['floor'] = floor
-    return df_train, df_future
+    dates = pd.date_range(start=start, end=end, freq='D')
+    df = pd.Series(dates)
+    return df
 
 # custom holidays
 # ============================================================================
@@ -254,9 +233,9 @@ def add_regressors(model, temp_df, future, exogs=None, time_diff=1, regs=None):
             m = m.add_regressor(reg)
             
     if exogs is not None:
-        new_end = (pd.to_datetime(end_train) - timedelta(days=time_diff)).strftime('%Y-%m-%d')
+        new_end = (pd.to_datetime(train_end) - timedelta(days=time_diff)).strftime('%Y-%m-%d')
         for exog in exogs.columns:
-            temp_df.loc[time_diff:, exog] =  exogs.loc[start_train:new_end][exog].values
+            temp_df.loc[time_diff:, exog] =  exogs.loc[train_start:new_end][exog].values
             #future.loc[time_diff-1:, exog] = traffic_data_.loc[start_train:][exog].values
             future.loc[time_diff:, exog] = exogs.reset_index().iloc[-len(future.loc[time_diff:]):][exog].values
             m = m.add_regressor(exog)
@@ -440,18 +419,65 @@ if __name__ == '__main__':
                                         ('Gulong.ph', 'Mechanigo.ph'),
                                         index=0)
         data = get_data(platform)
-        
-    with st.sidebar.expander('Columns'):
+        # date column
         date_col = st.selectbox('Date column', data.columns[data.dtypes=='datetime64[ns]'],
                                 index=0)
+        # target column
         param = st.selectbox('Target column:', platform_data[platform],
                                 index=0)
-        
-        
-    predict_horizon = st.sidebar.selectbox('Prediction horizon:',
+        # select data
+        st.write('Training dataset')
+        tcol1, tcol2 = st.columns(2)
+        date_series = pd.to_datetime(data.loc[:,date_col])
+        with tcol1:
+            train_start = st.date_input('Training data start date',
+                                        value = pd.to_datetime('2022-03-01'),
+                                        min_value=date_series.min().date(),
+                                        max_value=date_series.max().date())
+        with tcol2:
+            train_end = st.date_input('Training data end date',
+                                        value = pd.to_datetime('2022-07-31'),
+                                        min_value= pd.to_datetime('2022-04-01'),
+                                        max_value=date_series.max().date())
+        if train_start >= train_end:
+            st.error('Train_end should come after train_start.')
+            
+        st.write('Validation dataset')
+        vcol1, vcol2 = st.columns(2)
+        with vcol1:
+            val_start = st.date_input('val_start date',
+                                        value = train_end + timedelta(days=1),
+                                        min_value=train_end + timedelta(days=1),
+                                        max_value=date_series.max().date())
+        with vcol2:
+            val_end = st.date_input('val_end date',
+                                        value = date_series.max().date(),
+                                        min_value= val_start + timedelta(days=1),
+                                        max_value=date_series.max().date())
+        if val_start >= val_end:
+            st.error('Val_end should come after val_start.')
+    
+        # create forecast dataframe
+        if train_end <= data.date.max():
+            evals = make_forecast_dataframe(train_start, train_end)
+        else:
+            st.error('Train_end is outside available dataset.')
+    
+    with st.sidebar.expander('Forecast:'):
+        make_forecast_future = st.sidebar.checkbox('Make forecast on future dates')
+        if make_forecast_future:
+            forecast_horizon = st.number_input('Forecast horizon in days',
+                                               min_value = 1,
+                                               max_value = 30,
+                                               value = 15,
+                                               step = 1)
+            st.info('Forecast dates: \n {} to {}'.format(val_end+timedelta(days=1), 
+                                                   val_end+timedelta(days=forecast_horizon)))
+            predict_horizon = st.selectbox('Prediction horizon:',
                                            ('7 days', '15 days', '30 days'))
     
-    st.sidebar.write('Model features:')
+    
+    st.sidebar.write('2. Modelling')
     season_model = st.sidebar.checkbox('Seasonality', 
                         value = True,
                         key = 'season_model')
@@ -463,12 +489,9 @@ if __name__ == '__main__':
                         key = 'regressors_model')
     
     
-    start_train = '2022-03-01'
-    end_train = data.index.max().strftime('%Y-%m-%d')
-    today = date.today().strftime('%Y-%m-%d')
-    end_predict = (pd.to_datetime(today) 
-                   + timedelta(days=predict_horizon_dict[predict_horizon])).strftime('%Y-%m-%d')
-    data_train = data.loc[start_train: end_train, :]
+    #end_predict = (pd.to_datetime(today) 
+    #               + timedelta(days=predict_horizon_dict[predict_horizon])).strftime('%Y-%m-%d')
+    #data_train = data.loc[start_train: end_train, :]
     
     # get time difference between end of prediction horizon and end of training
     time_diff = (pd.to_datetime(end_predict) - pd.to_datetime(end_train)).days
