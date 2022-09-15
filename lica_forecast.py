@@ -23,6 +23,7 @@ from prophet import Prophet
 from prophet.diagnostics import cross_validation
 from prophet.diagnostics import performance_metrics
 from prophet.utilities import regressor_coefficients
+from prophet.plot import plot_plotly, plot_components_plotly
 from pytrends.request import TrendReq
 
 import itertools
@@ -459,7 +460,10 @@ if __name__ == '__main__':
     
         # create forecast dataframe
         if train_end <= data.date.max():
-            evals = make_forecast_dataframe(train_start, train_end)
+            date_series = make_forecast_dataframe(train_start, train_end)
+            param_series = data[data.date.isin(date_series)][param].reset_index()
+            evals = pd.concat([date_series, param_series], axis=1).rename(columns={0: 'ds',
+                                                                                   param:'y'}).drop('index', axis=1)
         else:
             st.error('Train_end is outside available dataset.')
     
@@ -473,14 +477,201 @@ if __name__ == '__main__':
                                                step = 1)
             st.info('Forecast dates: \n {} to {}'.format(val_end+timedelta(days=1), 
                                                    val_end+timedelta(days=forecast_horizon)))
-            predict_horizon = st.selectbox('Prediction horizon:',
-                                           ('7 days', '15 days', '30 days'))
-    
-    
+            #predict_horizon = st.selectbox('Prediction horizon:',
+                                           #('7 days', '15 days', '30 days'))
+                                           
+    # MODELLING
+    # ========================================================================
     st.sidebar.write('2. Modelling')
-    season_model = st.sidebar.checkbox('Seasonality', 
-                        value = True,
-                        key = 'season_model')
+    # default parameters for target cols
+    default_params = {'sessions':{'growth': 'logistic',
+              'seasonality_mode': 'multiplicative',
+              'changepoint_prior_scale': 30,
+              'n_changepoints' : 30,
+              },
+              'purchases_backend_website':{'growth': 'logistic',
+              'seasonality_mode': 'multiplicative',
+              'changepoint_prior_scale': 10,
+              'n_changepoints' : 20,
+              },
+              'bookings_ga':{'growth': 'logistic',
+              'seasonality_mode': 'multiplicative',
+              'changepoint_prior_scale': 10,
+              'n_changepoints' : 20,
+              }
+              }
+    
+    params = {}
+    with st.sidebar.expander('Model and Growth type'):
+        '''
+        Select type of growth, cap and floor
+        
+        TO DO:
+            add option to input specific changepoint dates
+        '''
+        
+        growth_type = st.selectbox('growth',
+                                   options=['logistic', 'linear'],
+                                   index = 0)
+        
+        params['growth'] = growth_type
+        if growth_type == 'logistic':
+            use_cap = st.checkbox('Add cap value')
+            if use_cap:
+                cap_type = st.selectbox('Value cap type',
+                                        options=['fixed', 'multiplier'])
+                if cap_type == 'fixed':
+                    cap = st.number_input('Fixed cap value',
+                                          min_value = 0,
+                                          value = 100)
+                    evals['cap'] = cap
+                elif cap_type == 'multiplier':
+                    cap = st.number_input('Cap multiplier',
+                                          min_value = 1,
+                                          value = 1)
+                    evals['cap'] = evals['y']*cap
+                
+                
+            use_floor = st.checkbox('Add floor value')
+            if use_floor:
+                floor_type = st.selectbox('Value floor type',
+                                        options=['fixed', 'multiplier'])
+                if floor_type == 'fixed':
+                    floor = st.number_input('Fixed floor value',
+                                          min_value = 0,
+                                          value = 0)
+                    evals['floor'] = floor
+                elif floor_type == 'multiplier':
+                    floor = st.number_input('Floor multiplier',
+                                          min_value = 0,
+                                          value = 0)
+                    evals['floor'] = evals['y']*floor
+    
+    with st.sidebar.expander('Changepoints'):
+        '''
+        Select parameters for changepoints
+        
+        TO DO:
+            add option to input specific changepoint dates
+        '''
+        n_changepoints = st.slider('Number of changepoints',
+                                   min_value = 5,
+                                   max_value = 100,
+                                   value = default_params[param]['n_changepoints'],
+                                   step = 5)
+        changepoint_prior_scale = st.number_input('changepoint_prior_scale',
+                                    min_value=0.05,
+                                    max_value=50.0,
+                                    value= default_params[param]['changepoint_prior_scale'],
+                                    step=0.05)
+        params['n_changepoints'] = n_changepoints
+        params['changepoint_prior_scale'] = changepoint_prior_scale
+        
+    
+    model = Prophet(**params)  # Input param grid
+    
+
+    with st.sidebar.expander('Seasonalities'):
+        season_model = st.selectbox('Add Seasonality', 
+                            options = ['auto', 'True', 'False'],
+                            key = 'season_model')
+        
+        seasonality_scale_dict = {'sessions': 12,
+                                  'purchases_backend_website': 5,
+                                  'bookings_ga': 5}
+        
+        if season_model == 'True':
+            model.daily_seasonality = 'auto'
+            
+            seasonality_mode = st.selectbox('seasonality_mode',
+                                        options = ['multiplicative', 'additive'],
+                                        index = 0)
+            model.seasonality_mode = seasonality_mode
+            
+            set_seasonality_prior_scale = st.checkbox('Set seasonality_prior_scale')
+            if set_seasonality_prior_scale:
+                seasonality_prior_scale = st.number_input('overall_seasonality_prior_scale',
+                                                      min_value= 1.0,
+                                                      max_value= 30.0,
+                                                      value=seasonality_scale_dict[param],
+                                                      step = 1.0)
+            else:
+                seasonality_prior_scale = None
+                
+            model.seasonality_prior_scale = seasonality_prior_scale
+            
+            yearly_seasonality = st.selectbox('yearly_seasonality', 
+                                          ('auto', False, 'custom'))
+            if yearly_seasonality == 'custom':
+                model.yearly_seasonality = False
+                yearly_seasonality_order = st.number_input('Yearly seasonality order',
+                                                           min_value = 1,
+                                                           max_value=30,
+                                                           value=5,
+                                                           step=1)
+                if set_seasonality_prior_scale is None:
+                    yearly_prior_scale = st.number_input('Yearly seasonality prior scale',
+                                                           min_value = 1.0,
+                                                           max_value=30.0,
+                                                           value=8.0,
+                                                           step=1.0)
+                model.add_seasonality(name='yearly', 
+                                      period = 365,
+                                      fourier_order = yearly_seasonality_order,
+                                      prior_scale = seasonality_prior_scale if set_seasonality_prior_scale else yearly_prior_scale) # add seasonality
+            
+            monthly_seasonality = st.selectbox('monthly_seasonality', 
+                                          ('auto', False, 'custom'))
+            if monthly_seasonality == 'custom':
+                model.monthly_seasonality = False
+                monthly_seasonality_order = st.number_input('monthly seasonality order',
+                                                           min_value = 1,
+                                                           max_value=30,
+                                                           value=5,
+                                                           step=1)
+                if set_seasonality_prior_scale is None:
+                    monthly_prior_scale = st.number_input('monthly seasonality prior scale',
+                                                           min_value = 1.0,
+                                                           max_value=30.0,
+                                                           value=8.0,
+                                                           step=1.0)
+                model.add_seasonality(name='monthly', 
+                                      period = 30.4,
+                                      fourier_order = monthly_seasonality_order,
+                                      prior_scale = seasonality_prior_scale if set_seasonality_prior_scale else monthly_prior_scale) # add seasonality
+            
+            weekly_seasonality = st.selectbox('weekly_seasonality', 
+                                          ('auto', False, 'custom'))
+            if weekly_seasonality == 'custom':
+                model.weekly_seasonality = False
+                weekly_seasonality_order = st.number_input('weekly seasonality order',
+                                                           min_value = 1,
+                                                           max_value=30,
+                                                           value=5,
+                                                           step=1)
+                if set_seasonality_prior_scale is None:
+                    weekly_prior_scale = st.number_input('weekly seasonality prior scale',
+                                                           min_value = 1.0,
+                                                           max_value=30.0,
+                                                           value=8.0,
+                                                           step=1.0)
+                model.add_seasonality(name='weekly', 
+                                      period = 30.4,
+                                      fourier_order = weekly_seasonality_order,
+                                      prior_scale = seasonality_prior_scale if set_seasonality_prior_scale else weekly_prior_scale) # add seasonality
+            
+        elif season_model == 'auto':
+            model.yearly_seasonality = 'auto'
+            model.monthly_seasonality = 'auto'
+            model.weekly_seasonality = 'auto'
+            model.daily_seasonality = 'auto'
+        
+        else:
+            model.yearly_seasonality = False
+            model.monthly_seasonality = False
+            model.weekly_seasonality = False
+            model.daily_seasonality = False
+            
     holiday_model = st.sidebar.checkbox('Holidays', 
                         value = True,
                         key = 'holiday_model')
@@ -497,18 +688,7 @@ if __name__ == '__main__':
     time_diff = (pd.to_datetime(end_predict) - pd.to_datetime(end_train)).days
     
     
-    # select parameters for model
-    params = {'sessions':{'growth': 'logistic',
-              'seasonality_mode': 'multiplicative',
-              'changepoint_prior_scale': 30,
-              'n_changepoints' : 30,
-              },
-              'purchases_backend_website':{'growth': 'logistic',
-              'seasonality_mode': 'multiplicative',
-              'changepoint_prior_scale': 10,
-              'n_changepoints' : 20,
-              }
-              }
+
         
     # create forecast dataframe
     temp_df, future = make_forecast_dataframe(data_train[param], end_predict, cap = data_train[param].max()*1.25, floor = 0)
