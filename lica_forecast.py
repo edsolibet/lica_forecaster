@@ -718,7 +718,7 @@ if __name__ == '__main__':
         
     # create forecast dataframe
     #temp_df, future = make_forecast_dataframe(data_train[param], end_predict, cap = data_train[param].max()*1.25, floor = 0)
-    m = Prophet(**params[param])  # Input param grid
+    m = Prophet(**params)  # Input param grid
         
     # add regressors and exogenous variables
     if regressor_model:
