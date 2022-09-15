@@ -562,7 +562,7 @@ if __name__ == '__main__':
         changepoint_prior_scale = st.number_input('changepoint_prior_scale',
                                     min_value=0.05,
                                     max_value=50.0,
-                                    value= default_params[param]['changepoint_prior_scale'],
+                                    value= float(default_params[param]['changepoint_prior_scale']),
                                     step=0.05)
         params['n_changepoints'] = n_changepoints
         params['changepoint_prior_scale'] = changepoint_prior_scale
