@@ -371,10 +371,6 @@ def calc_yhat(forecast, coefs, model):
 platform_data = {'Gulong.ph': ('sessions', 'purchases_backend_website'),
                  'Mechanigo.ph': ('sessions', 'bookings_ga')}
 
-# dictionary for to for setting prediction horizon from date today
-predict_horizon_dict = {'7 days': 7,
-                        '15 days': 15,
-                        '30 days' : 30}
 
 if __name__ == '__main__':
     st.title('LICA Target Setting and Forecasting App')
@@ -492,13 +488,15 @@ if __name__ == '__main__':
                                           min_value = 0,
                                           value = 1000)
                     evals['cap'] = cap
-                    
+                    if make_forecast_future:
+                        future['cap'] = cap
                 elif cap_type == 'multiplier':
                     cap = st.number_input('Cap multiplier',
                                           min_value = 1,
                                           value = 1)
                     evals['cap'] = evals['y']*cap
-                
+                    if make_forecast_future:
+                        future['cap'] = evals['y']*cap
                 
             use_floor = st.checkbox('Add floor value')
             if use_floor:
@@ -509,11 +507,15 @@ if __name__ == '__main__':
                                           min_value = 0,
                                           value = 0)
                     evals['floor'] = floor
+                    if make_forecast_future:
+                        future['floor'] = floor
                 elif floor_type == 'multiplier':
                     floor = st.number_input('Floor multiplier',
                                           min_value = 0,
                                           value = 0)
                     evals['floor'] = evals['y']*floor
+                    if make_forecast_future:
+                        future['floor'] = floor
     
     with st.sidebar.expander('Changepoints'):
 
@@ -714,7 +716,7 @@ if __name__ == '__main__':
                            default = exog_num_cols[param])
             
             for exog in exogs:
-                evals[exog] = data[data.date.isin(evals.ds)][exog].values
+                evals.loc[:, exog] = data[data.date.isin(evals.ds)][exog].values
         
         add_gtrends = st.checkbox('google trends',
                                   value = False)
@@ -738,7 +740,7 @@ if __name__ == '__main__':
                                        default = list(regs.keys()))
             
             for reg in regs_list:
-                evals[reg] = regs[reg]
+                evals.loc[:, reg] = regs[reg].values
             
     start_forecast = st.sidebar.checkbox('Launch forecast',
                                  value = False)     
