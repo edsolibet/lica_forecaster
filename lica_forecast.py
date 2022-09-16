@@ -744,7 +744,7 @@ if __name__ == '__main__':
                                  value = False)     
     
     if start_forecast:
-        model.fit(evals.fillna(0))
+        model.fit(evals)
         if make_forecast_future:
             forecast = model.predict(future)
         else:
