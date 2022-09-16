@@ -694,7 +694,7 @@ if __name__ == '__main__':
                                     gprop='', 
                                     sleep=0)
             historicaldf.index = historicaldf.index.strftime('%Y-%m-%d')
-            return historicaldf[kw_list].reset_index().mean().fillna(0).rename(columns={'index':'ds'})
+            return historicaldf[kw_list].reset_index().fillna(0).values
         
         
         add_metrics = st.checkbox('Add data metrics',
@@ -721,8 +721,9 @@ if __name__ == '__main__':
             gtrends_st = st.text_area('Enter google trends keywords',
                                         value = ' '.join(kw_list))
             kw_list = gtrends_st.split(' ')
-            gtrends_df = get_gtrend_data(kw_list, evals)
-            evals = pd.concat((evals, gtrends_df), axis=1)
+            gtrends = get_gtrend_data(kw_list, evals)
+            for g, gtrend in enumerate(gtrends):
+                evals.loc[:,kw_list[g]] = gtrend
         
         add_custom_reg = st.checkbox('Add custom regressors',
                                      value = True)
