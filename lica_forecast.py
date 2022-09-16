@@ -137,7 +137,7 @@ def make_forecast_dataframe(start, end):
     
     '''
     dates = pd.date_range(start=start, end=end, freq='D')
-    df = pd.Series(dates)
+    df = pd.DataFrame(dates).rename(columns={0:'ds'})
     return df
 
 # custom holidays
@@ -447,6 +447,7 @@ if __name__ == '__main__':
                                                    val_end+timedelta(days=forecast_horizon)))
             #predict_horizon = st.selectbox('Prediction horizon:',
                                            #('7 days', '15 days', '30 days'))
+            future = make_forecast_dataframe(start=train_start, end=val_end+timedelta(days=forecast_horizon))
                                            
     # MODELLING
     # ========================================================================
@@ -491,6 +492,7 @@ if __name__ == '__main__':
                                           min_value = 0,
                                           value = 1000)
                     evals['cap'] = cap
+                    
                 elif cap_type == 'multiplier':
                     cap = st.number_input('Cap multiplier',
                                           min_value = 1,
@@ -742,14 +744,10 @@ if __name__ == '__main__':
                                  value = False)     
     
     if start_forecast:
-        
+        model.fit(evals.fillna(0))
         if make_forecast_future:
-            future = model.make_future_dataframe(periods=forecast_horizon)
-            model.fit(future)
             forecast = model.predict(future)
         else:
-            evals = evals.fillna(0)
-            model.fit(evals)
             forecast = model.predict(evals)
         
         
