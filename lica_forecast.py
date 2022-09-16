@@ -425,11 +425,15 @@ if __name__ == '__main__':
         # create forecast dataframe
         if pd.Timestamp(val_end) <= data.date.max():
             date_series = make_forecast_dataframe(train_start, val_end)
-            param_series = data[data.date.isin(date_series)][param].reset_index()
+            param_series = data[data.date.isin(date_series.ds.values)][param].reset_index()
             evals = pd.concat([date_series, param_series], axis=1).rename(columns={0: 'ds',
                                                                                    param:'y'}).drop('index', axis=1)
         else:
             st.error('Train_end is outside available dataset.')
+    
+        if evals.y.isnull().sum() > 0.5*len(evals):
+                st.warning('Evals data contains too many NaN values')
+                st.write(evals)
     
     with st.sidebar.expander('Forecast:'):
         make_forecast_future = st.checkbox('Make forecast on future dates')
@@ -487,14 +491,14 @@ if __name__ == '__main__':
                     cap = st.number_input('Fixed cap value',
                                           min_value = 0,
                                           value = 1000)
-                    evals['cap'] = cap
+                    evals.loc[:, 'cap'] = cap
                     if make_forecast_future:
                         future['cap'] = cap
                 elif cap_type == 'multiplier':
                     cap = st.number_input('Cap multiplier',
                                           min_value = 1,
                                           value = 1)
-                    evals['cap'] = evals['y']*cap
+                    evals.loc[:,'cap'] = evals['y']*cap
                     if make_forecast_future:
                         future['cap'] = evals['y']*cap
                 
@@ -506,14 +510,14 @@ if __name__ == '__main__':
                     floor = st.number_input('Fixed floor value',
                                           min_value = 0,
                                           value = 0)
-                    evals['floor'] = floor
+                    evals.loc[:, 'floor'] = floor
                     if make_forecast_future:
                         future['floor'] = floor
                 elif floor_type == 'multiplier':
                     floor = st.number_input('Floor multiplier',
                                           min_value = 0,
                                           value = 0)
-                    evals['floor'] = evals['y']*floor
+                    evals.loc[:,'floor'] = evals['y']*floor
                     if make_forecast_future:
                         future['floor'] = floor
                         
