@@ -694,7 +694,7 @@ if __name__ == '__main__':
             pytrend = TrendReq()
             start = pd.to_datetime(df.ds.min())
             end = pd.to_datetime(df.ds.max())
-            historicaldf = pytrend.get_historical_interest(kw_list, 
+            historicaldf = pytrend.get_historical_interest(list(kw_list), 
                                     year_start=start.year, 
                                     month_start=start.month, 
                                     day_start=start.day, 
@@ -706,7 +706,7 @@ if __name__ == '__main__':
                                     gprop='', 
                                     sleep=0)
             #historicaldf.index = historicaldf.index.strftime('%Y-%m-%d')
-            return historicaldf[kw_list].groupby(historicaldf.index.date).mean().fillna(0)
+            return historicaldf[list(kw_list)].groupby(historicaldf.index.date).mean().fillna(0)
         
         
         add_metrics = st.checkbox('Add data metrics',
