@@ -694,7 +694,7 @@ if __name__ == '__main__':
                                     gprop='', 
                                     sleep=0)
             historicaldf.index = historicaldf.index.strftime('%Y-%m-%d')
-            return historicaldf[kw_list].reset_index().fillna(0).values
+            return historicaldf[kw_list].reset_index().fillna(0)
         
         
         add_metrics = st.checkbox('Add data metrics',
@@ -722,8 +722,8 @@ if __name__ == '__main__':
                                         value = ' '.join(kw_list))
             kw_list = gtrends_st.split(' ')
             gtrends = get_gtrend_data(kw_list, evals)
-            for g, gtrend in enumerate(gtrends):
-                evals.loc[:,kw_list[g]] = gtrend
+            for g, gtrend in enumerate(gtrends.columns):
+                evals.loc[:,kw_list[g]] = gtrends[gtrend]
         
         add_custom_reg = st.checkbox('Add custom regressors',
                                      value = True)
