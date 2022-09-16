@@ -693,7 +693,7 @@ if __name__ == '__main__':
                                     geo='', 
                                     gprop='', 
                                     sleep=0)
-            historicaldf.index = historicaldf.index.strftime('%Y-%m-%d')
+            #historicaldf.index = historicaldf.index.strftime('%Y-%m-%d')
             return historicaldf[kw_list].groupby('date').mean().fillna(0)
         
         
