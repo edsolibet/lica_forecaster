@@ -752,13 +752,6 @@ if __name__ == '__main__':
             forecast = model.predict(evals)
         
         
-        for pred in ['yhat', 'yhat_lower', 'yhat_upper']:
-            forecast.loc[:, pred] = forecast.loc[:, pred].apply(lambda x: 0 if x < 0 else x)
-        
-        y_true = data.loc['2022-08-01':'2022-08-28', param].fillna(0)
-        y_pred = forecast.set_index('ds').loc['2022-08-01':'2022-08-28', 'yhat'].fillna(0)
-        error = np.sqrt(mean_squared_error(y_true, y_pred))
-        
         # plot
         plot_forecast_(data, forecast, param)
         
