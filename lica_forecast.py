@@ -694,7 +694,7 @@ if __name__ == '__main__':
                                     gprop='', 
                                     sleep=0)
             historicaldf.index = historicaldf.index.strftime('%Y-%m-%d')
-            return historicaldf[kw_list].groupby('date').mean().reset_index().fillna(0)
+            return historicaldf[kw_list].groupby('date').mean().fillna(0)
         
         
         add_metrics = st.checkbox('Add data metrics',
