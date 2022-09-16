@@ -731,7 +731,11 @@ if __name__ == '__main__':
             regs = {'is_saturday': evals.ds.apply(is_saturday),
                     'is_sunday'  : evals.ds.apply(is_sunday)}
             
-            for reg in regs.keys():
+            regs_list = st.multiselect('Select custom regs',
+                                       options = list(regs.keys()),
+                                       default = list(regs.keys()))
+            
+            for reg in regs_list:
                 evals[reg] = regs[reg]
             
         
