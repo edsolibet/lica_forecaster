@@ -546,7 +546,7 @@ if __name__ == '__main__':
         
         params['n_changepoints'] = n_changepoints
         params['changepoint_prior_scale'] = changepoint_prior_scale
-        params['changepoint_range'] = changepoint_prior_scale
+        params['changepoint_range'] = changepoint_range
         
     
     model = Prophet(**params)  # Input param grid
