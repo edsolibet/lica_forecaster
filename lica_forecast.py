@@ -723,7 +723,7 @@ if __name__ == '__main__':
             kw_list = gtrends_st.split(' ')
             gtrends = get_gtrend_data(kw_list, evals)
             for g, gtrend in enumerate(gtrends.columns):
-                evals.loc[:,kw_list[g]] = gtrends[gtrend]
+                evals.loc[:,kw_list[g]] = gtrends[gtrend].values
         
         add_custom_reg = st.checkbox('Add custom regressors',
                                      value = True)
