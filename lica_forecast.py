@@ -749,6 +749,7 @@ if __name__ == '__main__':
             model.fit(future)
             forecast = model.predict(future)
         else:
+            evals = evals.fillna(0)
             model.fit(evals)
             forecast = model.predict(evals)
         
