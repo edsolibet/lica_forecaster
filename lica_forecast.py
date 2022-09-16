@@ -694,7 +694,7 @@ if __name__ == '__main__':
                                     gprop='', 
                                     sleep=0)
             historicaldf.index = historicaldf.index.strftime('%Y-%m-%d')
-            return historicaldf[kw_list].reset_index().groupby('date').mean().fillna(0)
+            return historicaldf[kw_list].reset_index().mean().fillna(0).rename(columns={'index':'ds'})
         
         
         add_metrics = st.checkbox('Add data metrics',
@@ -737,7 +737,7 @@ if __name__ == '__main__':
             for reg in regs_list:
                 evals[reg] = regs[reg]
             
-    start_forecast = st.checkbox('Launch forecast',
+    start_forecast = st.sidebar.checkbox('Launch forecast',
                                  value = False)     
     
     if start_forecast:
