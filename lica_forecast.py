@@ -766,7 +766,6 @@ if __name__ == '__main__':
                                  value = False)     
     
     if start_forecast:
-        st.write(evals)
         model.fit(evals)
         if make_forecast_future:
             forecast = model.predict(future)
@@ -776,7 +775,11 @@ if __name__ == '__main__':
         
         # plot
         #plot_forecast_(data, forecast, param)
-        st.plotly_chart(plot_plotly(model, forecast))
+        st.plotly_chart(plot_plotly(model, forecast,
+                                    uncertainty=True,
+                                    trend=True,
+                                    changepoints=True
+                                    ))
         
         # st.write('Total predicted:')
         # yhat = round(forecast.iloc[-predict_horizon_dict[predict_horizon]:].yhat.sum())
