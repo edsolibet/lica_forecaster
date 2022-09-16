@@ -721,6 +721,7 @@ if __name__ == '__main__':
             gtrends_st = st.text_area('Enter google trends keywords',
                                         value = ' '.join(kw_list))
             kw_list = gtrends_st.split(' ')
+            st.write(evals)
             gtrends = get_gtrend_data(kw_list, evals)
             for g, gtrend in enumerate(gtrends.columns):
                 evals.loc[:,kw_list[g]] = gtrends[gtrend].values
