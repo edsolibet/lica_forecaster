@@ -233,7 +233,7 @@ def plot_forecast(data, forecast, param, end_train, end_pred):
     plt.xticks(rotation=45)
     st.pyplot(fig)
     
-def plot_forecast_(data, forecast, param, end_train, end_pred):
+def plot_forecast_(data, forecast, param):
     
     dataset = data[data.index.isin(forecast.set_index('ds').index)]
     
@@ -356,7 +356,7 @@ def calc_yhat(forecast, coefs, model):
             holiday += forecast.loc[row, h]
         holiday_list.append(holiday)
         seasons = 0
-        for s in list(m.seasonalities.keys()):
+        for s in list(model.seasonalities.keys()):
             seasons += forecast.loc[row, s]
         seasons_list.append(seasons)
         tot.append(reg_comps + holiday + seasons + forecast.loc[row, 'extra_regressors_multiplicative'])
@@ -428,7 +428,7 @@ if __name__ == '__main__':
     
         # create forecast dataframe
         if train_end <= data.date.max():
-            date_series = make_forecast_dataframe(train_start, train_end)
+            date_series = make_forecast_dataframe(train_start, val_end)
             param_series = data[data.date.isin(date_series)][param].reset_index()
             evals = pd.concat([date_series, param_series], axis=1).rename(columns={0: 'ds',
                                                                                    param:'y'}).drop('index', axis=1)
@@ -530,7 +530,6 @@ if __name__ == '__main__':
         
     
     model = Prophet(**params)  # Input param grid
-    
 
     with st.sidebar.expander('Seasonalities'):
         season_model = st.selectbox('Add Seasonality', 
@@ -738,58 +737,40 @@ if __name__ == '__main__':
             for reg in regs_list:
                 evals[reg] = regs[reg]
             
-        
-            
-    #end_predict = (pd.to_datetime(today) 
-    #               + timedelta(days=predict_horizon_dict[predict_horizon])).strftime('%Y-%m-%d')
-    #data_train = data.loc[start_train: end_train, :]
+    start_forecast = st.checkbox('Launch forecast',
+                                 value = False)     
     
-    # get time difference between end of prediction horizon and end of training
-    #time_diff = (pd.to_datetime(end_predict) - pd.to_datetime(end_train)).days
-    
-    
-
+    if start_forecast:
         
-    # create forecast dataframe
-    #temp_df, future = make_forecast_dataframe(data_train[param], end_predict, cap = data_train[param].max()*1.25, floor = 0)
-    m = Prophet(**params)  # Input param grid
-        
-    # add regressors and exogenous variables
-    if regressor_model:
-        kw_list =['gulong.ph', 'gogulong']
-        data.loc[:, exog_num_cols[param]] = data.loc[:, exog_num_cols[param]].fillna(0)
-        if kw_list:
-            gtrend_data = get_gtrend_data(kw_list, start_train, end_train)
-            gtrend_data.index = pd.to_datetime(gtrend_data.index)
-            exogs = pd.concat([data.loc[start_train:,exog_num_cols[param]], gtrend_data], axis=1)
+        if make_forecast_future:
+            future = model.make_future_dataframe(periods=forecast_horizon)
+            model.fit(future)
+            forecast = model.predict(future)
         else:
-            exogs = data.loc[start_train:, exog_num_cols[param]]
-        m, temp_df, future = add_regressors(m, temp_df, future, exogs, time_diff, regs)
-    
-    # fit model
-    m.fit(temp_df)
-    forecast = m.predict(future)
-    
-    for pred in ['yhat', 'yhat_lower', 'yhat_upper']:
-        forecast.loc[:, pred] = forecast.loc[:, pred].apply(lambda x: 0 if x < 0 else x)
-    
-    y_true = data.loc['2022-08-01':'2022-08-28', param].fillna(0)
-    y_pred = forecast.set_index('ds').loc['2022-08-01':'2022-08-28', 'yhat'].fillna(0)
-    error = np.sqrt(mean_squared_error(y_true, y_pred))
-    
-    # plot
-    plot_forecast_(data, forecast, param, end_train, end_predict)
-    
-    st.write('Total predicted:')
-    yhat = round(forecast.iloc[-predict_horizon_dict[predict_horizon]:].yhat.sum())
-    yhat_lower = round(forecast.iloc[-predict_horizon_dict[predict_horizon]:].yhat_lower.sum())
-    yhat_upper = round(forecast.iloc[-predict_horizon_dict[predict_horizon]:].yhat_upper.sum())
-    st.dataframe(pd.DataFrame([[yhat, yhat_lower, yhat_upper]], columns=['yhat', 'yhat_lower', 'yhat_upper']))
-    
-    # get regressor coefficients
-    if len(exog_num_cols[param]) or len(regs.keys()):
-        regressor_coefs = regressor_coefficients(m).set_index('regressor')
+            model.fit(evals)
+            forecast = model.predict(evals)
         
-    # average daily value of parameters
+        
+        for pred in ['yhat', 'yhat_lower', 'yhat_upper']:
+            forecast.loc[:, pred] = forecast.loc[:, pred].apply(lambda x: 0 if x < 0 else x)
+        
+        y_true = data.loc['2022-08-01':'2022-08-28', param].fillna(0)
+        y_pred = forecast.set_index('ds').loc['2022-08-01':'2022-08-28', 'yhat'].fillna(0)
+        error = np.sqrt(mean_squared_error(y_true, y_pred))
+        
+        # plot
+        plot_forecast_(data, forecast, param)
+        
+        # st.write('Total predicted:')
+        # yhat = round(forecast.iloc[-predict_horizon_dict[predict_horizon]:].yhat.sum())
+        # yhat_lower = round(forecast.iloc[-predict_horizon_dict[predict_horizon]:].yhat_lower.sum())
+        # yhat_upper = round(forecast.iloc[-predict_horizon_dict[predict_horizon]:].yhat_upper.sum())
+        # st.dataframe(pd.DataFrame([[yhat, yhat_lower, yhat_upper]], columns=['yhat', 'yhat_lower', 'yhat_upper']))
+        
+        # # get regressor coefficients
+        # if len(exog_num_cols[param]) or len(regs.keys()):
+        #     regressor_coefs = regressor_coefficients(m).set_index('regressor')
+            
+        # # average daily value of parameters
    
     
