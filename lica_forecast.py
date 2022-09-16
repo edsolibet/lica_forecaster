@@ -423,7 +423,7 @@ if __name__ == '__main__':
             st.error('Val_end should come after val_start.')
     
         # create forecast dataframe
-        if train_end <= data.date.max():
+        if pd.Timestamp(val_end) <= data.date.max():
             date_series = make_forecast_dataframe(train_start, val_end)
             param_series = data[data.date.isin(date_series)][param].reset_index()
             evals = pd.concat([date_series, param_series], axis=1).rename(columns={0: 'ds',
@@ -516,6 +516,10 @@ if __name__ == '__main__':
                     evals['floor'] = evals['y']*floor
                     if make_forecast_future:
                         future['floor'] = floor
+                        
+                if evals.y.isnull().sum() > 0.5*len(evals):
+                    st.warning('Evals data contains too many NaN values')
+                    st.write(evals)
     
     with st.sidebar.expander('Changepoints'):
 
@@ -620,7 +624,7 @@ if __name__ == '__main__':
                                                            value=8.0,
                                                            step=1.0)
                 model.add_seasonality(name='weekly', 
-                                      period = 30.4,
+                                      period = 7,
                                       fourier_order = weekly_seasonality_order,
                                       prior_scale = seasonality_prior_scale if set_seasonality_prior_scale else weekly_prior_scale) # add seasonality
             
@@ -717,6 +721,10 @@ if __name__ == '__main__':
             
             for exog in exogs:
                 evals.loc[:, exog] = data[data.date.isin(evals.ds)][exog].values
+            
+            if evals.y.isnull().sum() > 0.5*len(evals):
+                st.warning('Evals data contains too many NaN values')
+                st.write(evals)
         
         add_gtrends = st.checkbox('google trends',
                                   value = False)
@@ -728,6 +736,10 @@ if __name__ == '__main__':
             gtrends = get_gtrend_data(kw_list, evals)
             for g, gtrend in enumerate(gtrends.columns):
                 evals.loc[:,kw_list[g]] = gtrends[gtrend].values
+            
+            if evals.y.isnull().sum() > 0.5*len(evals):
+                st.warning('Evals data contains too many NaN values')
+                st.write(evals)
         
         add_custom_reg = st.checkbox('Add custom regressors',
                                      value = True)
@@ -741,6 +753,10 @@ if __name__ == '__main__':
             
             for reg in regs_list:
                 evals.loc[:, reg] = regs[reg].values
+                
+            if evals.y.isnull().sum() > 0.5*len(evals):
+                st.warning('Evals data contains too many NaN values')
+                st.write(evals)
             
     start_forecast = st.sidebar.checkbox('Launch forecast',
                                  value = False)     
