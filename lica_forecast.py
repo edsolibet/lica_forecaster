@@ -537,8 +537,16 @@ if __name__ == '__main__':
                                     max_value=50.0,
                                     value= float(default_params[param]['changepoint_prior_scale']),
                                     step=0.05)
+        changepoint_range = st.number_input('changepoint_prior_scale',
+                                    min_value=0.05,
+                                    max_value=1.0,
+                                    value=0.95,
+                                    step=0.05)
+        
+        
         params['n_changepoints'] = n_changepoints
         params['changepoint_prior_scale'] = changepoint_prior_scale
+        params['changepoint_range'] = changepoint_prior_scale
         
     
     model = Prophet(**params)  # Input param grid
