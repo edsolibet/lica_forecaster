@@ -756,7 +756,7 @@ if __name__ == '__main__':
         
         # plot
         #plot_forecast_(data, forecast, param)
-        plot_plotly(model, forecast)
+        st.plotly_chart(plot_plotly(model, forecast))
         
         # st.write('Total predicted:')
         # yhat = round(forecast.iloc[-predict_horizon_dict[predict_horizon]:].yhat.sum())
