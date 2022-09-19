@@ -808,7 +808,7 @@ if __name__ == '__main__':
         
         
         # plot
-        st.heading('1. Overview')
+        st.header('1. Overview')
         st.plotly_chart(plot_plotly(model, forecast,
                                     uncertainty=True,
                                     trend=True,
@@ -816,7 +816,7 @@ if __name__ == '__main__':
                                     ))
         
         #st.expander('Plot info'):
-        st.heading('Error analysis')
+        st.header('Error analysis')
         truth_vs_forecast = plot_forecast_vs_actual_scatter(evals, forecast)
         st.plot_plotly(truth_vs_forecast)
         # st.write('Total predicted:')
