@@ -472,28 +472,27 @@ if __name__ == '__main__':
                                                step = 1)
             st.info('Forecast dates: \n {} to {}'.format(val_end+timedelta(days=1), 
                                                    val_end+timedelta(days=forecast_horizon)))
-            #predict_horizon = st.selectbox('Prediction horizon:',
-                                           #('7 days', '15 days', '30 days'))
+
             future = make_forecast_dataframe(start=train_start, end=val_end+timedelta(days=forecast_horizon))
-                                           
+                             
     # MODELLING
     # ========================================================================
     st.sidebar.write('2. Modelling')
     # default parameters for target cols
     default_params = {'sessions':{'growth': 'logistic',
               'seasonality_mode': 'multiplicative',
-              'changepoint_prior_scale': 30.0,
+              'changepoint_prior_scale': 15.0,
               'n_changepoints' : 30,
               },
               'purchases_backend_website':{'growth': 'logistic',
               'seasonality_mode': 'multiplicative',
-              'changepoint_prior_scale': 10.0,
-              'n_changepoints' : 20,
+              'changepoint_prior_scale': 15.0,
+              'n_changepoints' : 30,
               },
               'bookings_ga':{'growth': 'logistic',
               'seasonality_mode': 'multiplicative',
-              'changepoint_prior_scale': 10,
-              'n_changepoints' : 20.0,
+              'changepoint_prior_scale': 15.0,
+              'n_changepoints' : 30.0,
               }
               }
     
@@ -520,7 +519,7 @@ if __name__ == '__main__':
                                           value = 1000)
                     evals.loc[:, 'cap'] = cap
                     if make_forecast_future:
-                        future['cap'] = cap
+                        future.loc[:,'cap'] = cap
                 elif cap_type == 'multiplier':
                     cap = st.number_input('Cap multiplier',
                                           min_value = 1,
@@ -539,14 +538,14 @@ if __name__ == '__main__':
                                           value = 0)
                     evals.loc[:, 'floor'] = floor
                     if make_forecast_future:
-                        future['floor'] = floor
+                        future.loc[:,'floor'] = floor
                 elif floor_type == 'multiplier':
                     floor = st.number_input('Floor multiplier',
                                           min_value = 0,
                                           value = 0)
                     evals.loc[:,'floor'] = evals['y']*floor
                     if make_forecast_future:
-                        future['floor'] = floor
+                        future.loc[:,'floor'] = floor
                         
                 if evals.y.isnull().sum() > 0.5*len(evals):
                     st.warning('Evals data contains too many NaN values')
@@ -583,7 +582,7 @@ if __name__ == '__main__':
                             options = ['auto', 'True', 'False'],
                             key = 'season_model')
         
-        seasonality_scale_dict = {'sessions': 12,
+        seasonality_scale_dict = {'sessions': 10,
                                   'purchases_backend_website': 5,
                                   'bookings_ga': 5}
         
@@ -592,7 +591,7 @@ if __name__ == '__main__':
             
             seasonality_mode = st.selectbox('seasonality_mode',
                                         options = ['multiplicative', 'additive'],
-                                        index = 0)
+                                        index = 1)
             model.seasonality_mode = seasonality_mode
             
             set_seasonality_prior_scale = st.checkbox('Set seasonality_prior_scale')
@@ -634,7 +633,7 @@ if __name__ == '__main__':
                 monthly_seasonality_order = st.number_input('monthly seasonality order',
                                                            min_value = 1,
                                                            max_value=30,
-                                                           value=5,
+                                                           value=9,
                                                            step=1)
                 if set_seasonality_prior_scale is False:
                     monthly_prior_scale = st.number_input('monthly seasonality prior scale',
@@ -654,7 +653,7 @@ if __name__ == '__main__':
                 weekly_seasonality_order = st.number_input('weekly seasonality order',
                                                            min_value = 1,
                                                            max_value=30,
-                                                           value=5,
+                                                           value=3,
                                                            step=1)
                 if set_seasonality_prior_scale is False:
                     weekly_prior_scale = st.number_input('weekly seasonality prior scale',
@@ -760,6 +759,7 @@ if __name__ == '__main__':
             
             for exog in exogs:
                 evals.loc[:, exog] = data[data.date.isin(evals.ds)][exog].values
+                model.add_regressor(exog)
             
             if evals.y.isnull().sum() > 0.5*len(evals):
                 st.warning('Evals data contains too many NaN values')
@@ -775,6 +775,7 @@ if __name__ == '__main__':
             gtrends = get_gtrend_data(kw_list, evals)
             for g, gtrend in enumerate(gtrends.columns):
                 evals.loc[:,kw_list[g]] = gtrends[gtrend].values
+                model.add_regressor(kw_list[g])
             
             if evals.y.isnull().sum() > 0.5*len(evals):
                 st.warning('Evals data contains too many NaN values')
@@ -784,14 +785,23 @@ if __name__ == '__main__':
                                      value = True)
         if add_custom_reg:
             regs = {'is_saturday': evals.ds.apply(is_saturday),
-                    'is_sunday'  : evals.ds.apply(is_sunday)}
+                        'is_sunday'  : evals.ds.apply(is_sunday)}
             
             regs_list = st.multiselect('Select custom regs',
-                                       options = list(regs.keys()),
-                                       default = list(regs.keys()))
+                           options = list(regs.keys()),
+                           default = list(regs.keys()))
             
             for reg in regs_list:
                 evals.loc[:, reg] = regs[reg].values
+                model.add_regressor(reg)
+            
+            if make_forecast_future:
+                regs_future = {'is_saturday': future.ds.apply(is_saturday),
+                               'is_sunday'  : future.ds.apply(is_sunday)}
+                
+                for reg in regs_list:
+                    future.loc[:, reg] = regs_future[reg].values
+                
                 
             if evals.y.isnull().sum() > 0.5*len(evals):
                 st.warning('Evals data contains too many NaN values')
@@ -817,7 +827,7 @@ if __name__ == '__main__':
                                     ))
         
         #st.expander('Plot info'):
-        st.header('Error analysis')
+        st.header('Evaluation and Error analysis')
         st.write('Forecast vs Actual')
         truth_vs_forecast = plot_forecast_vs_actual_scatter(evals, forecast)
         st.plotly_chart(truth_vs_forecast)
