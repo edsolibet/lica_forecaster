@@ -818,7 +818,7 @@ if __name__ == '__main__':
         #st.expander('Plot info'):
         st.header('Error analysis')
         truth_vs_forecast = plot_forecast_vs_actual_scatter(evals, forecast)
-        st.plot_plotly(truth_vs_forecast)
+        st.plotly_chart(truth_vs_forecast)
         # st.write('Total predicted:')
         # yhat = round(forecast.iloc[-predict_horizon_dict[predict_horizon]:].yhat.sum())
         # yhat_lower = round(forecast.iloc[-predict_horizon_dict[predict_horizon]:].yhat_lower.sum())
