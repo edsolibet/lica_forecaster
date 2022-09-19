@@ -23,6 +23,8 @@ from prophet import Prophet
 from prophet.diagnostics import cross_validation
 from prophet.diagnostics import performance_metrics
 from prophet.utilities import regressor_coefficients
+import plotly.express as px
+import plotly.graph_objects as go
 from prophet.plot import plot_plotly, plot_components_plotly
 from pytrends.request import TrendReq
 
@@ -283,6 +285,30 @@ def plot_forecast_(data, forecast, param):
     fig.update_yaxes(showline=True, linewidth=2, linecolor='black', gridcolor='#696969')
     fig.show()
     st.plotly_chart(fig, use_container_width=True)
+
+def plot_forecast_vs_actual_scatter(evals, forecast):
+    evals_ = evals[['ds', 'y']]
+    evals_df = pd.concat([evals_, forecast['yhat']], axis=1)
+    fig = px.scatter(evals_df,
+                     x = 'y',
+                     y = 'yhat',
+                     opacity=0.5,
+                     hover_data={'ds': True, 'y': ':.4f', 'yhat': ':.4f'})
+    
+    fig.add_trace(
+        go.Scatter(
+            x=evals_df['y'],
+            y=evals_df['y'],
+            name='optimal',
+            mode='lines',
+            line=dict(color='red', width=1.5)))
+    
+    fig.update_layout(
+        xaxis_title="Truth", yaxis_title="Forecast", legend_title_text="", height=450, width=800)
+    
+    return fig
+
+
 
 
 def get_regressors(reg_list, level = None):
@@ -782,13 +808,17 @@ if __name__ == '__main__':
         
         
         # plot
-        #plot_forecast_(data, forecast, param)
+        st.heading('1. Overview')
         st.plotly_chart(plot_plotly(model, forecast,
                                     uncertainty=True,
                                     trend=True,
                                     changepoints=True
                                     ))
         
+        #st.expander('Plot info'):
+        st.heading('Error analysis')
+        truth_vs_forecast = plot_forecast_vs_actual_scatter(evals, forecast)
+        st.plot_plotly(truth_vs_forecast)
         # st.write('Total predicted:')
         # yhat = round(forecast.iloc[-predict_horizon_dict[predict_horizon]:].yhat.sum())
         # yhat_lower = round(forecast.iloc[-predict_horizon_dict[predict_horizon]:].yhat_lower.sum())
