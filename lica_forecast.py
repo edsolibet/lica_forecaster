@@ -308,7 +308,8 @@ def plot_forecast_vs_actual_scatter(evals, forecast):
     
     return fig
 
-
+def make_separate_components_plot(forecast):
+    pass
 
 
 def get_regressors(reg_list, level = None):
@@ -808,7 +809,7 @@ if __name__ == '__main__':
         
         
         # plot
-        st.header('1. Overview')
+        st.header('Overview')
         st.plotly_chart(plot_plotly(model, forecast,
                                     uncertainty=True,
                                     trend=True,
@@ -817,18 +818,15 @@ if __name__ == '__main__':
         
         #st.expander('Plot info'):
         st.header('Error analysis')
+        st.write('Forecast vs Actual')
         truth_vs_forecast = plot_forecast_vs_actual_scatter(evals, forecast)
         st.plotly_chart(truth_vs_forecast)
-        # st.write('Total predicted:')
-        # yhat = round(forecast.iloc[-predict_horizon_dict[predict_horizon]:].yhat.sum())
-        # yhat_lower = round(forecast.iloc[-predict_horizon_dict[predict_horizon]:].yhat_lower.sum())
-        # yhat_upper = round(forecast.iloc[-predict_horizon_dict[predict_horizon]:].yhat_upper.sum())
-        # st.dataframe(pd.DataFrame([[yhat, yhat_lower, yhat_upper]], columns=['yhat', 'yhat_lower', 'yhat_upper']))
         
-        # # get regressor coefficients
-        # if len(exog_num_cols[param]) or len(regs.keys()):
-        #     regressor_coefs = regressor_coefficients(m).set_index('regressor')
-            
-        # # average daily value of parameters
+        st.write('Components analysis')
+        st.plotly_chart(plot_components_plotly(
+            model,
+            forecast,
+            uncertainty=True))
+        
    
     
