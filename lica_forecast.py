@@ -843,8 +843,8 @@ if __name__ == '__main__':
                     future.fillna(0, inplace=True)
                 elif clean_method == 'fill with adjacent mean':
                     for col in col_NaN:
-                        evals[col] = evals[col].fillna((evals[col].shift() + evals[col].shift(-1))/2)
-                        future[col] = future[col].fillna((future[col].shift() + future[col].shift(-1))/2)
+                        evals[col].fillna(0.5*(evals[col].shift() + evals[col].shift(-1)), inplace=True)
+                        future[col].fillna(0.5*(future[col].shift() + future[col].shift(-1)), inplace=True)
 
         else:
             if any(evals.isnull().sum() > 0):
@@ -857,7 +857,7 @@ if __name__ == '__main__':
                     evals.fillna(0, inplace=True)
                 elif clean_method == 'fill with adjacent mean':
                     for col in col_NaN:
-                        evals[col] = evals[col].fillna((evals[col].shift() + evals[col].shift(-1))/2)
+                        evals[col].fillna(0.5*(evals[col].shift() + evals[col].shift(-1)), inplace=True)
                     
         
         st.write('Outliers')
