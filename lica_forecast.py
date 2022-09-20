@@ -835,6 +835,7 @@ if __name__ == '__main__':
             if any(evals.isnull().sum() > 0) or any(future.isnull().sum() > 0):
                 war = st.warning('Found NaN values in data set')
                 col_NaN = evals.columns[evals.isnull().sum() > 0]
+                st.write(col_NaN)
                 clean_method = st.selectbox('Select method to remove NaNs',
                          options = ['None', 'fill with zero', 'fill with adjcent mean'],
                          index = 0)
@@ -843,8 +844,8 @@ if __name__ == '__main__':
                     future.fillna(0, inplace=True)
                 elif clean_method == 'fill with adjacent mean':
                     for col in col_NaN:
-                        evals[col].fillna(0.5*(evals[col].shift() + evals[col].shift(-1)), inplace=True)
-                        future[col].fillna(0.5*(future[col].shift() + future[col].shift(-1)), inplace=True)
+                        evals.loc[:, col] = evals[col].fillna(0.5*(evals[col].shift() + evals[col].shift(-1)))
+                        future.loc[:, col] = future[col].fillna(0.5*(future[col].shift() + future[col].shift(-1)))
 
         else:
             if any(evals.isnull().sum() > 0):
@@ -857,7 +858,7 @@ if __name__ == '__main__':
                     evals.fillna(0, inplace=True)
                 elif clean_method == 'fill with adjacent mean':
                     for col in col_NaN:
-                        evals[col].fillna(0.5*(evals[col].shift() + evals[col].shift(-1)), inplace=True)
+                        evals.loc[:, col] = evals[col].fillna(0.5*(evals[col].shift() + evals[col].shift(-1)))
                     
         
         st.write('Outliers')
