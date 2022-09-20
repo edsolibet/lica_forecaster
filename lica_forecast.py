@@ -872,42 +872,54 @@ if __name__ == '__main__':
         
         
         # plot
-        st.header('Overview')
+        st.header('1. Overview')
         st.plotly_chart(plot_plotly(model, forecast,
                                     uncertainty=True,
                                     trend=True,
                                     changepoints=True
                                     ))
         
-        #st.expander('Plot info'):
-        st.header('Evaluation and Error analysis')
+        if make_forecast_future:
+            df_preds = forecast.tail(forecast_horizon)
+            st.dataframe(forecast.tail(forecast_horizon))
+            view_setting = st.selectbox('View sum or mean',
+                         options=['sum', 'mean'],
+                         index = 0)
+            if view_setting =='sum':
+                st.markdown('***SUM***: {}'.format(df_preds.sum()))
+            elif view_setting == 'mean':
+                st.markdown('***MEAN***: {}'.format(df_preds.mean()))
         
-        st.header('Global performance')
-        mae = mean_absolute_error(evals.y, forecast.loc[evals.index,'yhat'])
-        mape = mean_absolute_percentage_error(evals.y, forecast.loc[evals.index,'yhat']) 
-        rmse = np.sqrt(mean_squared_error(evals.y, forecast.loc[evals.index,'yhat']))
+        #st.expander('Plot info'):
+        st.header('2. Evaluation and Error analysis')
+        
+        st.subheader('Global performance')
+        mae = round(mean_absolute_error(evals.y, forecast.loc[evals.index,'yhat']), 3)
+        mape = round(mean_absolute_percentage_error(evals.y, forecast.loc[evals.index,'yhat']), 3)
+        rmse = round(np.sqrt(mean_squared_error(evals.y, forecast.loc[evals.index,'yhat'])), 3)
         
         err1, err2, err3 = st.columns(3)
         with err1:
-            st.write('MAE')
+            st.markdown('***MAE***')
             st.write(mae)
         
         with err2:
-            st.write('RMSE')
+            st.markdown('***RMSE***')
             st.write(rmse)
         
         with err3:
-            st.write('MAPE')
+            st.markdown('***MAPE***')
             st.write(mape)
             
-        st.write('Forecast vs Actual')
+        st.subheader('Forecast vs Actual')
         truth_vs_forecast = plot_forecast_vs_actual_scatter(evals, forecast)
         st.plotly_chart(truth_vs_forecast)
         
-        st.write('R2 error: {}'.format(r2_score(evals.y, forecast.loc[evals.index,'yhat'])))
+        r2 = round(r2_score(evals.y, forecast.loc[evals.index,'yhat']), 3)
+        st.markdown('***R2 error***: {}'.format(r2))
         
         
-        st.write('Components analysis')
+        st.header('3. Impact of components')
         st.plotly_chart(plot_components_plotly(
             model,
             forecast,
