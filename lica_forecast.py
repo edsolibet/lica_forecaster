@@ -881,14 +881,14 @@ if __name__ == '__main__':
         
         if make_forecast_future:
             df_preds = forecast.tail(forecast_horizon)
-            st.dataframe(forecast.tail(forecast_horizon))
+            st.dataframe(forecast.tail(forecast_horizon)['yhat'])
             view_setting = st.selectbox('View sum or mean',
                          options=['sum', 'mean'],
                          index = 0)
             if view_setting =='sum':
-                st.markdown('***SUM***: {}'.format(df_preds.sum()))
+                st.markdown('***SUM***: {}'.format(sum(df_preds['yhat'])))
             elif view_setting == 'mean':
-                st.markdown('***MEAN***: {}'.format(df_preds.mean()))
+                st.markdown('***MEAN***: {}'.format(np.mean(df_preds['yhat'])))
         
         #st.expander('Plot info'):
         st.header('2. Evaluation and Error analysis')
