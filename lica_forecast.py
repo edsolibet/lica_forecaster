@@ -29,7 +29,7 @@ from prophet.plot import plot_plotly, plot_components_plotly
 from pytrends.request import TrendReq
 
 import itertools
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_absolute_error, mean_squared_error, mean_absolute_percentage_error, r2_score
 import warnings
 warnings.filterwarnings(action='ignore', category=UserWarning)
 
@@ -825,12 +825,12 @@ if __name__ == '__main__':
                     exog_data = data[data.date.isin(date_series.ds.values)][exog]
                     total = st.number_input('Select {} total over forecast period'.format(exog),
                                            min_value = 0.0, 
-                                           max_value = exog_data.tail(forecast_horizon).sum()*2.0,
                                            value = exog_data.tail(forecast_horizon).sum(),
                                            step = 0.01)
                     future.loc[future.index[-forecast_horizon:],exog] = np.full((forecast_horizon,), round(total/forecast_horizon, 3))
     
     with st.sidebar.expander('Cleaning'):
+        st.write('Missing values')
         if make_forecast_future:
             if any(evals.isnull().sum() > 0) or any(future.isnull().sum() > 0):
                 st.warning('Found NaN values in data set')
@@ -854,7 +854,11 @@ if __name__ == '__main__':
                     evals.fillna(0, inplace=True)
                 elif clean_method == 'fill with adjacent mean':
                     evals = evals.where(evals.notnull(), other=(evals.fillna(method='ffill')+evals.fillna(method='bfill'))/2)
-            
+        
+        st.write('Outliers')
+        remove_outliers = st.checkbox('Remove outliers', value = False)
+        
+    
     start_forecast = st.sidebar.checkbox('Launch forecast',
                                  value = False)     
     
@@ -877,9 +881,31 @@ if __name__ == '__main__':
         
         #st.expander('Plot info'):
         st.header('Evaluation and Error analysis')
+        
+        st.header('Global performance')
+        mae = mean_absolute_error(evals.y, forecast.loc[evals.index,'yhat'])
+        mape = mean_absolute_percentage_error(evals.y, forecast.loc[evals.index,'yhat']) 
+        rmse = np.sqrt(mean_squared_error(evals.y, forecast.loc[evals.index,'yhat']))
+        
+        err1, err2, err3 = st.columns(3)
+        with err1:
+            st.write('MAE')
+            st.write(mae)
+        
+        with err2:
+            st.write('RMSE')
+            st.write(rmse)
+        
+        with err3:
+            st.write('MAPE')
+            st.write(mape)
+            
         st.write('Forecast vs Actual')
         truth_vs_forecast = plot_forecast_vs_actual_scatter(evals, forecast)
         st.plotly_chart(truth_vs_forecast)
+        
+        st.write('R2 error: {}'.format(r2_score(evals.y, forecast.loc[evals.index,'yhat'])))
+        
         
         st.write('Components analysis')
         st.plotly_chart(plot_components_plotly(
