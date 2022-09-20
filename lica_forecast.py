@@ -821,13 +821,14 @@ if __name__ == '__main__':
             if add_metrics and len(exogs) > 0:
                 # provide input field
                 for exog in exogs:
-                        total = st.number_input('Select metric total over forecast period',
-                                               min_value = 0.0, 
-                                               max_value = max(data[data.date.isin(date_series.ds.values)][exog])*1.5,
-                                               value = exogs[exog].tail(forecast_horizon).mean(),
-                                               step = 0.01)
-                        future.loc[:, exog] = np.full((forecast_horizon,), round(total/forecast_horizon, 3))
-            
+                    exog_data = data[data.date.isin(date_series.ds.values)][exog]
+                    total = st.number_input('Select metric total over forecast period',
+                                           min_value = 0.0, 
+                                           max_value = max(exog_data)*1.5,
+                                           value = exog_data.tail(forecast_horizon).mean(),
+                                           step = 0.01)
+                    future.loc[:, exog] = np.full((forecast_horizon,), round(total/forecast_horizon, 3))
+        
     start_forecast = st.sidebar.checkbox('Launch forecast',
                                  value = False)     
     
