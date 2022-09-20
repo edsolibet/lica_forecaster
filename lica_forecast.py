@@ -825,8 +825,8 @@ if __name__ == '__main__':
                     exog_data = data[data.date.isin(date_series.ds.values)][exog]
                     total = st.number_input('Select {} total over forecast period'.format(exog),
                                            min_value = 0.0, 
-                                           max_value = max(exog_data)*1.5,
-                                           value = exog_data.tail(forecast_horizon).mean(),
+                                           max_value = exog_data.tail(forecast_horizon).sum()*2.0,
+                                           value = exog_data.tail(forecast_horizon).sum(),
                                            step = 0.01)
                     future.loc[future.index[-forecast_horizon:],exog] = np.full((forecast_horizon,), round(total/forecast_horizon, 3))
     
