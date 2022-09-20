@@ -836,6 +836,7 @@ if __name__ == '__main__':
     if start_forecast:
         model.fit(evals)
         if make_forecast_future:
+            st.write(future)
             forecast = model.predict(future)
         else:
             forecast = model.predict(evals)
