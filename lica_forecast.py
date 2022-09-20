@@ -829,8 +829,32 @@ if __name__ == '__main__':
                                            value = exog_data.tail(forecast_horizon).mean(),
                                            step = 0.01)
                     future.loc[future.index[-forecast_horizon:],exog] = np.full((forecast_horizon,), round(total/forecast_horizon, 3))
-                    
     
+    with st.sidebar.expander('Cleaning'):
+        if make_forecast_future:
+            if any(evals.isnull().sum() > 0) or any(future.isnull().sum() > 0):
+                st.warning('Found NaN values in data set')
+                clean_method = st.selectbox('Select method to remove NaNs',
+                         options = ['None', 'fill with zero', 'fill with adjcent mean'],
+                         index = 0)
+                if clean_method == 'fill with zero':
+                    evals.fillna(0, inplace=True)
+                    future.fillna(0, inplace=True)
+                elif clean_method == 'fill with adjacent mean':
+                    evals = evals.where(evals.notnull(), other=(evals.fillna(method='ffill')+evals.fillna(method='bfill'))/2)
+                    future = future.where(future.notnull(), other=(future.fillna(method='ffill')+future.fillna(method='bfill'))/2)
+        
+        else:
+            if any(evals.isnull().sum() > 0):
+                st.warning('Found NaN values in data set')
+                clean_method = st.selectbox('Select method to remove NaNs',
+                         options = ['None', 'fill with zero', 'fill with adjcent mean'],
+                         index = 0)
+                if clean_method == 'fill with zero':
+                    evals.fillna(0, inplace=True)
+                elif clean_method == 'fill with adjacent mean':
+                    evals = evals.where(evals.notnull(), other=(evals.fillna(method='ffill')+evals.fillna(method='bfill'))/2)
+            
     start_forecast = st.sidebar.checkbox('Launch forecast',
                                  value = False)     
     
