@@ -827,7 +827,7 @@ if __name__ == '__main__':
                                            max_value = max(exog_data)*1.5,
                                            value = exog_data.tail(forecast_horizon).mean(),
                                            step = 0.01)
-                    future.loc[-forecast_horizon:, exog] = np.full((forecast_horizon,), round(total/forecast_horizon, 3))
+                    future.loc[:,exog].iloc[-forecast_horizon:] = np.full((forecast_horizon,), round(total/forecast_horizon, 3))
         
     start_forecast = st.sidebar.checkbox('Launch forecast',
                                  value = False)     
