@@ -833,7 +833,8 @@ if __name__ == '__main__':
         st.write('Missing values')
         if make_forecast_future:
             if any(evals.isnull().sum() > 0) or any(future.isnull().sum() > 0):
-                st.warning('Found NaN values in data set')
+                war = st.warning('Found NaN values in data set')
+                col_NaN = evals.columns[evals.isnull().sum() > 0]
                 clean_method = st.selectbox('Select method to remove NaNs',
                          options = ['None', 'fill with zero', 'fill with adjcent mean'],
                          index = 0)
@@ -841,19 +842,23 @@ if __name__ == '__main__':
                     evals.fillna(0, inplace=True)
                     future.fillna(0, inplace=True)
                 elif clean_method == 'fill with adjacent mean':
-                    evals = evals.where(evals.notnull(), other=(evals.fillna(method='ffill')+evals.fillna(method='bfill'))/2)
-                    future = future.where(future.notnull(), other=(future.fillna(method='ffill')+future.fillna(method='bfill'))/2)
-        
+                    for col in col_NaN:
+                        evals[col] = evals[col].fillna((evals[col].shift() + evals[col].shift(-1))/2)
+                        future[col] = future[col].fillna((future[col].shift() + future[col].shift(-1))/2)
+
         else:
             if any(evals.isnull().sum() > 0):
                 st.warning('Found NaN values in data set')
+                col_NaN = evals.columns[evals.isnull().sum() > 0]
                 clean_method = st.selectbox('Select method to remove NaNs',
                          options = ['None', 'fill with zero', 'fill with adjcent mean'],
                          index = 0)
                 if clean_method == 'fill with zero':
                     evals.fillna(0, inplace=True)
                 elif clean_method == 'fill with adjacent mean':
-                    evals = evals.where(evals.notnull(), other=(evals.fillna(method='ffill')+evals.fillna(method='bfill'))/2)
+                    for col in col_NaN:
+                        evals[col] = evals[col].fillna((evals[col].shift() + evals[col].shift(-1))/2)
+                    
         
         st.write('Outliers')
         remove_outliers = st.checkbox('Remove outliers', value = False)
@@ -880,15 +885,15 @@ if __name__ == '__main__':
                                     ))
         
         if make_forecast_future:
-            df_preds = forecast.tail(forecast_horizon)
+            df_preds = forecast.set_index('ds').tail(forecast_horizon)
             st.dataframe(forecast.tail(forecast_horizon)['yhat'])
             view_setting = st.selectbox('View sum or mean',
                          options=['sum', 'mean'],
                          index = 0)
             if view_setting =='sum':
-                st.markdown('***SUM***: {}'.format(sum(df_preds['yhat'])))
+                st.markdown('***SUM***: {}'.format(round(sum(df_preds['yhat']), 3)))
             elif view_setting == 'mean':
-                st.markdown('***MEAN***: {}'.format(np.mean(df_preds['yhat'])))
+                st.markdown('***MEAN***: {}'.format(round(np.mean(df_preds['yhat']), 3)))
         
         #st.expander('Plot info'):
         st.header('2. Evaluation and Error analysis')
