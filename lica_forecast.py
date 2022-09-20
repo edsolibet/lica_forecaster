@@ -551,6 +551,8 @@ if __name__ == '__main__':
                     st.warning('Evals data contains too many NaN values')
                     st.write(evals)
     
+    # CHANGEPOINTS
+    # =========================================================================
     with st.sidebar.expander('Changepoints'):
 
         n_changepoints = st.slider('Number of changepoints',
@@ -577,6 +579,8 @@ if __name__ == '__main__':
     
     model = Prophet(**params)  # Input param grid
 
+    # SEASONALITIES
+    # ========================================================================
     with st.sidebar.expander('Seasonalities'):
         season_model = st.selectbox('Add Seasonality', 
                             options = ['auto', 'True', 'False'],
@@ -678,6 +682,8 @@ if __name__ == '__main__':
             model.weekly_seasonality = False
             model.daily_seasonality = False
     
+    # HOLIDAYS
+    # =========================================================================
     with st.sidebar.expander('Holidays'):
         holiday_model = st.checkbox('Add Holidays', 
                             value = True,
@@ -712,6 +718,8 @@ if __name__ == '__main__':
             model.holidays = None
             model.holiday_prior_scale = 0
     
+    # REGRESSORS
+    # =========================================================================
     with st.sidebar.expander('Regressors'):
         def is_saturday(ds):
             date = pd.to_datetime(ds)
@@ -806,6 +814,18 @@ if __name__ == '__main__':
             if evals.y.isnull().sum() > 0.5*len(evals):
                 st.warning('Evals data contains too many NaN values')
                 st.write(evals)
+        
+        if make_forecast_future:
+            # input regressor data for future/forecast dates
+            # if selected metrics is not None
+            if add_metrics and len(exogs) > 0:
+                # provide input field
+                for exog in exogs:
+                        total = st.number_input('Select metric total over forecast period',
+                                               min_value = 0, 
+                                               max_value = max(exogs[exog])*1.5,
+                                               value = exogs[exog].tail(forecast_horizon).mean())
+                        future.loc[:, exog] = np.full((forecast_horizon,), round(total/forecast_horizon, 3))
             
     start_forecast = st.sidebar.checkbox('Launch forecast',
                                  value = False)     
