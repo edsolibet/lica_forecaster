@@ -689,7 +689,7 @@ if __name__ == '__main__':
         add_metrics = st.checkbox('Add data metrics',
                                   value = True)
         
-        exog_num_cols = {'sessions': ['ctr_fb', 'ctr_ga', 'ctr_total', 'ad_costs_fb_total', 'ad_costs_ga', 'ad_costs_total'
+        exog_num_cols = {'sessions': ['ctr_fb', 'ctr_ga', 'ctr_total', 'ad_costs_fb_total', 'ad_costs_ga', 'ad_costs_total',
                              'landing_page_views', 'impressions_fb', 'impressions_ga', 'pageviews'],
                          'purchases_backend_website': ['ctr_fb', 'ctr_ga', 'ctr_total', 'ad_costs_fb_total', 'ad_costs_ga', 'ad_costs_total',
                              'landing_page_views', 'impressions_fb', 'impressions_ga', 'cancellations',
