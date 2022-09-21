@@ -461,9 +461,9 @@ if __name__ == '__main__':
                 if make_forecast_future:
                     future.loc[:,'floor'] = floor
             
-            # check viability of cap value
-            if cap <= floor:
-                st.error('Cap value should be greater than floor value')
+                # check viability of cap value
+                if cap <= floor:
+                    st.error('Cap value should be greater than floor value')
     
     # CHANGEPOINTS
     # =========================================================================
