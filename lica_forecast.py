@@ -631,7 +631,7 @@ if __name__ == '__main__':
                                                    options=list(holidays_set.keys()),
                                                    default = list(holidays_set.keys()))
                 
-                model.holidays = pd.concat(selected_holidays)
+                model.holidays = pd.concat([holidays_set[h] for h in selected_holidays])
             
             holiday_scale_dict = {'sessions': 3,
                                   'purchases_backend_website': 3,
