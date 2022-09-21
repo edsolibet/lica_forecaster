@@ -709,47 +709,6 @@ if __name__ == '__main__':
                 # if forecast future
                 if make_forecast_future:
                     future.loc[future.ds.isin(evals.ds), exog] = data[data.date.isin(evals.ds)][exog].values
-            
-        
-        add_gtrends = st.checkbox('Add Google trends',
-                                  value = False)
-        if add_gtrends:
-            # keywords
-            kw_list = ['gulong.ph', 'gogulong']
-            gtrends_st = st.text_area('Enter google trends keywords',
-                                        value = ' '.join(kw_list))
-            # selected keywords
-            kw_list = gtrends_st.split(' ')
-            # cannot generate data for dates in forecast horizon
-            gtrends = get_gtrend_data(kw_list, evals)
-            for g, gtrend in enumerate(gtrends.columns):
-                evals.loc[:,kw_list[g]] = gtrends[gtrend].values
-                future.loc[future.ds.isin(evals.ds), gtrend] = gtrends[gtrends.date.isin(evals.ds)][gtrend].values
-                model.add_regressor(kw_list[g])
-                
-        # custom regressors (functions applied to dates)
-        add_custom_reg = st.checkbox('Add custom regressors',
-                                     value = True)
-        if add_custom_reg:
-            regs = {'is_saturday': evals.ds.apply(is_saturday),
-                    'is_sunday'  : evals.ds.apply(is_sunday)}
-            
-            if make_forecast_future:
-                regs_future = {'is_saturday': future.ds.apply(is_saturday),
-                               'is_sunday'  : future.ds.apply(is_sunday)}
-            
-            # regressor multiselect
-            regs_list = st.multiselect('Select custom regs',
-                           options = list(regs.keys()),
-                           default = list(regs.keys()))
-            
-            for reg in regs_list:
-                evals.loc[:, reg] = regs[reg].values
-                model.add_regressor(reg)
-            
-                if make_forecast_future:
-                    future.loc[:, reg] = regs_future[reg].values
-                
         
         if make_forecast_future:
             # input regressor data for future/forecast dates
@@ -761,7 +720,7 @@ if __name__ == '__main__':
                     for exog in exogs:
                         exog_data = data[data.date.isin(date_series.ds.values)][exog]
                         # added key to solve DuplicateWidgetID
-                        data_input = st.selectbox('Data input type:',
+                        data_input = st.selectbox(exog + ' data input type:',
                                              options=['total', 'average'],
                                              index=0,
                                              key = exog + '_input')
@@ -783,6 +742,48 @@ if __name__ == '__main__':
             else:
                 # delete unused fields
                 regressor_input.empty()
+            
+            # gtrends
+            add_gtrends = st.checkbox('Add Google trends',
+                                  value = False)
+            if add_gtrends:
+                # keywords
+                kw_list = ['gulong.ph', 'gogulong']
+                gtrends_st = st.text_area('Enter google trends keywords',
+                                            value = ' '.join(kw_list))
+                # selected keywords
+                kw_list = gtrends_st.split(' ')
+                # cannot generate data for dates in forecast horizon
+                gtrends = get_gtrend_data(kw_list, evals)
+                for g, gtrend in enumerate(gtrends.columns):
+                    evals.loc[:,kw_list[g]] = gtrends[gtrend].values
+                    future.loc[future.ds.isin(evals.ds), gtrend] = gtrends[gtrends.date.isin(evals.ds)][gtrend].values
+                    model.add_regressor(kw_list[g])
+            
+            
+            # custom regressors (functions applied to dates)
+            add_custom_reg = st.checkbox('Add custom regressors',
+                                         value = True)
+            if add_custom_reg:
+                regs = {'is_saturday': evals.ds.apply(is_saturday),
+                        'is_sunday'  : evals.ds.apply(is_sunday)}
+                
+                if make_forecast_future:
+                    regs_future = {'is_saturday': future.ds.apply(is_saturday),
+                                   'is_sunday'  : future.ds.apply(is_sunday)}
+                
+                # regressor multiselect
+                regs_list = st.multiselect('Select custom regs',
+                               options = list(regs.keys()),
+                               default = list(regs.keys()))
+                
+                for reg in regs_list:
+                    evals.loc[:, reg] = regs[reg].values
+                    model.add_regressor(reg)
+                
+                    if make_forecast_future:
+                        future.loc[:, reg] = regs_future[reg].values
+                
                 
     with st.sidebar.expander('Cleaning'):
         st.write('Missing values')
