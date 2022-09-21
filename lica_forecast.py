@@ -441,7 +441,7 @@ if __name__ == '__main__':
         if growth_type == 'logistic':
             # if logistic growth, cap value is required
             cap = st.number_input('Enter fixed cap value',
-                                  min_value = 0,
+                                  min_value = 0.0,
                                   max_value = None,
                                   value = default_params[param]['cap'],
                                   step = 0.01)
@@ -454,8 +454,9 @@ if __name__ == '__main__':
             use_floor = st.checkbox('Add floor value')
             if use_floor:
                 floor = st.number_input('Enter fixed floor value',
-                                      min_value = 0,
-                                      value = 0)
+                                      min_value = 0.0,
+                                      max_value = None,
+                                      value = 0.0)
                 evals.loc[:, 'floor'] = floor
                 if make_forecast_future:
                     future.loc[:,'floor'] = floor
