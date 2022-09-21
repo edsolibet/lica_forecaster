@@ -400,8 +400,7 @@ if __name__ == '__main__':
                                                value = 15,
                                                step = 1)
             st.info(f'''Forecast dates:\n 
-                    {val_end+timedelta(days=1)} to 
-                    {val_end+timedelta(days=forecast_horizon)}''')
+                    {val_end+timedelta(days=1)} to {val_end+timedelta(days=forecast_horizon)}''')
 
             future = make_forecast_dataframe(start=train_start, 
                                              end=val_end+timedelta(days=forecast_horizon))
@@ -570,7 +569,8 @@ if __name__ == '__main__':
                                       prior_scale = seasonality_prior_scale if set_seasonality_prior_scale else monthly_prior_scale) # add seasonality
             
             weekly_seasonality = st.selectbox('weekly_seasonality', 
-                                          ('Auto', 'False', 'Custom'))
+                                          options = ('Auto', 'False', 'Custom'),
+                                          index = 2)
             if weekly_seasonality == 'Custom':
                 model.weekly_seasonality = False
                 weekly_seasonality_order = st.number_input('Weekly seasonality order',
@@ -760,10 +760,12 @@ if __name__ == '__main__':
                 with regressor_input.container():
                     for exog in exogs:
                         exog_data = data[data.date.isin(date_series.ds.values)][exog]
-                        
+                        # added key to solve DuplicateWidgetID
                         data_input = st.selectbox('Data input type:',
                                              options=['total', 'average'],
-                                             index=0)
+                                             index=0,
+                                             key = exog + '_input')
+                        
                         if data_input == 'total':
                             # if data input is total
                             total = st.number_input('Select {} total over forecast period'.format(exog),
