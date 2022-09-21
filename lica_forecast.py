@@ -802,13 +802,13 @@ if __name__ == '__main__':
                              options = ['None', 'fill with zero', 'fill with adjcent mean'],
                              index = 0)
                     if clean_method == 'fill with zero':
-                        evals.fillna(0, inplace=True)
-                        future.fillna(0, inplace=True)
+                        evals = evals.fillna(0)
+                        future = future.fillna(0)
                         
                     elif clean_method == 'fill with adjacent mean':
                         for col in col_NaN:
-                            evals[col].fillna(0.5*(evals[col].ffill() + evals[col].bfill()), inplace=True)
-                            future[col].fillna(0.5*(future[col].ffill() + future[col].bfill()), inplace=True)
+                            evals.loc[:, col] = evals.loc[:, col].fillna(0.5*(evals.loc[:, col].ffill() + evals.loc[:, col].bfill()))
+                            future.loc[:, col] = future.loc[:, col].fillna(0.5*(future.loc[:, col].ffill() + future.loc[:, col].bfill()))
             else:
                 # remove NaN error text
                 nan_err_container.empty()
@@ -827,16 +827,16 @@ if __name__ == '__main__':
                              options = ['None', 'fill with zero', 'fill with adjcent mean'],
                              index = 0)
                     if clean_method == 'fill with zero':
-                        evals.fillna(0, inplace=True)
+                        evals = evals.fillna(0)
                         
                     elif clean_method == 'fill with adjacent mean':
                         for col in col_NaN:
-                            if pd.isna(evals.loc[0, col]) or pd.isna(evals.loc[len(evals)-1, col]):
+                            if pd.isna(evals.loc[0, col]) or pd.isna(evals.loc[len(evals)-1, col]):   
+                                evals.loc[:, col] = evals.loc[:, col].fillna(0.5*(evals.loc[:, col].ffill() + evals.loc[:, col].bfill()))
                                 # if first or last value is NaN
-                                evals[col].fillna(0.5*(evals[col].ffill() + evals[col].bfill()), inplace=True)
-                                evals = evals.bfill().ffill()
+                                evals.loc[:, col] = evals.loc[:, col].bfill().ffill()
                             else:
-                                evals[col].fillna(0.5*(evals[col].ffill() + evals[col].bfill()), inplace=True)
+                                evals.loc[:, col] = evals.loc[:, col].fillna(0.5*(evals.loc[:, col].ffill() + evals.loc[:, col].bfill()))
                                 
             else: 
                 # remove NaN error text
@@ -857,9 +857,10 @@ if __name__ == '__main__':
             st.dataframe(future)
             forecast = model.predict(future)
         else:
+            st.dataframe(evals)
             forecast = model.predict(evals)
         
-        
+
         # plot
         st.header('1. Overview')
         st.plotly_chart(plot_plotly(model, forecast,
