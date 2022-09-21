@@ -420,13 +420,13 @@ if __name__ == '__main__':
               'seasonality_mode': 'multiplicative',
               'changepoint_prior_scale': 15.0,
               'n_changepoints' : 30,
-              'cap' : 30,
+              'cap' : 30.0,
               },
               'bookings_ga':{'growth': 'logistic',
               'seasonality_mode': 'multiplicative',
               'changepoint_prior_scale': 15.0,
               'n_changepoints' : 30,
-              'cap' : 30,
+              'cap' : 30.0,
               }
               }
     
@@ -442,7 +442,9 @@ if __name__ == '__main__':
             # if logistic growth, cap value is required
             cap = st.number_input('Enter fixed cap value',
                                   min_value = 0,
-                                  value = default_params[param])
+                                  max_value = None,
+                                  value = default_params[param]['cap'],
+                                  step = 0.01)
             evals.loc[:, 'cap'] = cap
             # if forecast future, also apply cap to future df
             if make_forecast_future:
