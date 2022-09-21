@@ -414,7 +414,7 @@ if __name__ == '__main__':
               'seasonality_mode': 'multiplicative',
               'changepoint_prior_scale': 15.0,
               'n_changepoints' : 30,
-              'cap' : 2500,
+              'cap' : 2500.0,
               },
               'purchases_backend_website':{'growth': 'logistic',
               'seasonality_mode': 'multiplicative',
