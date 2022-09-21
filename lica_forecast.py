@@ -770,14 +770,14 @@ if __name__ == '__main__':
                             # if data input is total
                             total = st.number_input('Select {} total over forecast period'.format(exog),
                                                    min_value = 0.0, 
-                                                   value = exog_data.tail(forecast_horizon).sum(),
+                                                   value = sum(exog_data[-forecast_horizon:]),
                                                    step = 0.01)
                             future.loc[future.index[-forecast_horizon:],exog] = np.full((forecast_horizon,), round(total/forecast_horizon, 3))
                         else:
                             # if data input is average
                             average = st.number_input('Select {} average over forecast period'.format(exog),
                                                    min_value = 0.0, 
-                                                   value = exog_data.tail(forecast_horizon).mean(),
+                                                   value = np.mean(exog_data[-forecast_horizon:]),
                                                    step = 0.01)
                             future.loc[future.index[-forecast_horizon:],exog] = np.full((forecast_horizon,), round(average, 3))
             else:
