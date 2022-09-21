@@ -111,6 +111,8 @@ def get_data(platform):
     traffic_data_.loc[:, 'impressions_total'] = traffic_data_.loc[:,impressions_cols].sum(axis=1)
     traffic_data_.loc[:, 'ctr_ga'] = traffic_data_.apply(lambda x: ratio(x['link_clicks_ga'], x['impressions_ga']), axis=1)
     traffic_data_.loc[:, 'ctr_fb'] = traffic_data_.apply(lambda x: ratio(x['link_clicks_fb'], x['impressions_fb']), axis=1)
+    traffic_data_.loc[:, 'ctr_total'] = traffic_data_.apply(lambda x: ratio(x['clicks_total'], x['impressions_total']), axis=1)
+    traffic_data_.loc[:, 'ad_costs_total'] = traffic_data_.loc[:, 'ad_costs_ga'] + traffic_data_.loc[:, 'ad_costs_fb_total']
     
     if platform == 'Gulong.ph':
         traffic_data_.loc[:, 'purchases_backend_total'] = traffic_data_.loc[:,purchases_backend_cols].sum(axis=1)
@@ -142,98 +144,6 @@ def make_forecast_dataframe(start, end):
     df = pd.DataFrame(dates).rename(columns={0:'ds'})
     return df
 
-# custom holidays
-# ============================================================================
-
-
-# add seasonalities
-# ============================================================================
-# seasonality dictionary 
-seasonality_dict = {'weekly':    {'period': 7,
-                                  'fourier_order': 20},
-                    'bimonthly': {'period': 15.2,
-                                  'fourier_order': 10},
-                    'monthly':   {'period': 30.4,
-                                  'fourier_order': 15}}
-
-def add_seasonality(model, seasonality_dict):
-    '''
-    Helper function to add seasonality to Prophet model
-
-    Parameters
-    ----------
-    model : Prophet
-        Prophet model instance
-    seasonality_dict : dictionary
-        dictionary of seasonalities to be added to model
-
-    Returns
-    -------
-    m : Prophet
-        Model instance with added seasonalities
-
-    '''
-    m = model
-    for season in seasonality_dict.keys():
-        m.add_seasonality(name = season,
-                              period = seasonality_dict[season]['period'],
-                              fourier_order = seasonality_dict[season]['fourier_order'])
-    return m
-
-# add regressors and exogenous variables
-# ============================================================================
-
-
-
-def add_regressors(model, temp_df, future, exogs=None, time_diff=1, regs=None):
-    
-    m = model
-    if regs is not None:
-        for reg in regs.keys():
-            temp_df.loc[:, reg] = temp_df['ds'].apply(regs[reg])
-            future.loc[:, reg] = future['ds'].apply(regs[reg])
-            m = m.add_regressor(reg)
-            
-    if exogs is not None:
-        new_end = (pd.to_datetime(train_end) - timedelta(days=time_diff)).strftime('%Y-%m-%d')
-        for exog in exogs.columns:
-            temp_df.loc[time_diff:, exog] =  exogs.loc[train_start:new_end][exog].values
-            #future.loc[time_diff-1:, exog] = traffic_data_.loc[start_train:][exog].values
-            future.loc[time_diff:, exog] = exogs.reset_index().iloc[-len(future.loc[time_diff:]):][exog].values
-            m = m.add_regressor(exog)
-    return m, temp_df.loc[time_diff:], future.loc[time_diff:]
-
-def add_regressors_(model, df, regressors):
-    
-    m = model
-    for reg in regressors.keys():
-        df.loc[:, reg] = regressors[reg]
-        m = m.add_regressor(reg)
-            
-    return m, df
-
-
-def plot_forecast(data, forecast, param, end_train, end_pred):
-    labels = ['train', 'forecast']
-    color_list = ['#0000FF', '#008000', '#7F00FF', '#800020']
-    color_shade_list = ['#89CFF0', '#AFE1AF', '#CF9FFF', '#FAA0A0']
-    # import matplotlib.pyplot as plt
-    fig, ax = plt.subplots()
-    dataset = data[data.index.isin(forecast.set_index('ds').index)]
-    #train = forecast.set_index('ds').loc[:end_train]
-    #end_train_plus_1 = (pd.to_datetime(end_train) + timedelta(days=1)).strftime('%Y-%m-%d')
-    #preds = forecast.set_index('ds').loc[end_train_plus_1:end_pred]
-    ax.plot(dataset.index, dataset[param], 'o-', color='k', ms=4, label='data')
-    ax.plot(forecast['ds'], forecast['yhat'], '--', color = color_list[0], label=labels[1])
-    #ax.plot(data_test.index[-16:], data_test[param].iloc[-16:], linewidth=2)
-    ax.fill_between(forecast['ds'], forecast['yhat_lower'], forecast['yhat_upper'], facecolor=color_shade_list[0], alpha=0.5)
-    ax.legend(prop={'size': 15})
-    ax.set_xlabel('Date')
-    ax.set_ylabel(param)
-    ax.set_xlim([dataset.index.min(),forecast['ds'].max()])
-    ax.set_ylim([0, forecast['yhat_upper'].max()])
-    plt.xticks(rotation=45)
-    st.pyplot(fig)
     
 def plot_forecast_(data, forecast, param):
     
@@ -287,6 +197,21 @@ def plot_forecast_(data, forecast, param):
     st.plotly_chart(fig, use_container_width=True)
 
 def plot_forecast_vs_actual_scatter(evals, forecast):
+    '''
+    Create a plot for forecasted values vs actual data
+    
+    Parameters
+    ----------
+    evals : dataframe
+        training dataframe
+    forecast: dataframe
+        output dataframe from model.predict
+    
+    Returns
+    -------
+    fig : figure
+        plotly figure
+    '''
     evals_ = evals[['ds', 'y']]
     evals_df = pd.concat([evals_, forecast['yhat']], axis=1)
     fig = px.scatter(evals_df,
@@ -395,8 +320,6 @@ def calc_yhat(forecast, coefs, model):
     return df_yhat
 
 
-platform_data = {'Gulong.ph': ('sessions', 'purchases_backend_website'),
-                 'Mechanigo.ph': ('sessions', 'bookings_ga')}
 
 
 if __name__ == '__main__':
@@ -405,7 +328,7 @@ if __name__ == '__main__':
                 This tool forecasts the future values of important metrics to be used
                 for target setting.
                 ''')
-    st.sidebar.write('1. Data')
+    st.sidebar.markdown('# 1. Data')
     with st.sidebar.expander('Data selection'):
         platform = st.selectbox('Select platform',
                                         ('Gulong.ph', 'Mechanigo.ph'),
@@ -414,11 +337,14 @@ if __name__ == '__main__':
         # date column
         date_col = st.selectbox('Date column', data.columns[data.dtypes=='datetime64[ns]'],
                                 index=0)
+        
+        platform_data = {'Gulong.ph': ('sessions', 'purchases_backend_website'),
+                 'Mechanigo.ph': ('sessions', 'bookings_ga')}
         # target column
         param = st.selectbox('Target column:', platform_data[platform],
                                 index=0)
         # select data
-        st.write('Training dataset')
+        st.markdown('### Training dataset')
         tcol1, tcol2 = st.columns(2)
         date_series = pd.to_datetime(data.loc[:,date_col])
         with tcol1:
@@ -433,8 +359,9 @@ if __name__ == '__main__':
                                         max_value=date_series.max().date())
         if train_start >= train_end:
             st.error('Train_end should come after train_start.')
-            
-        st.write('Validation dataset')
+        
+
+        st.markdown('### Validation dataset')
         vcol1, vcol2 = st.columns(2)
         with vcol1:
             val_start = st.date_input('val_start date',
@@ -449,59 +376,62 @@ if __name__ == '__main__':
         if val_start >= val_end:
             st.error('Val_end should come after val_start.')
     
-        # create forecast dataframe
+        # create training dataframe
+        # 
         if pd.Timestamp(val_end) <= data.date.max():
             date_series = make_forecast_dataframe(train_start, val_end)
             param_series = data[data.date.isin(date_series.ds.values)][param].reset_index()
             evals = pd.concat([date_series, param_series], axis=1).rename(columns={0: 'ds',
                                                                                    param:'y'}).drop('index', axis=1)
-        else:
-            st.error('Train_end is outside available dataset.')
-    
-        if evals.y.isnull().sum() > 0.5*len(evals):
+            # check for NaNs
+            if evals.y.isnull().sum() > 0.5*len(evals):
                 st.warning('Evals data contains too many NaN values')
-                st.write(evals)
+                st.dataframe(evals)
+        else:
+            st.error('val_end is outside available dataset.')
     
-    with st.sidebar.expander('Forecast:'):
+         
+    with st.sidebar.expander('Forecast'):
         make_forecast_future = st.checkbox('Make forecast on future dates')
         if make_forecast_future:
-            forecast_horizon = st.number_input('Forecast horizon in days',
+            forecast_horizon = st.number_input('Forecast horizon (days)',
                                                min_value = 1,
                                                max_value = 30,
                                                value = 15,
                                                step = 1)
-            st.info('Forecast dates: \n {} to {}'.format(val_end+timedelta(days=1), 
-                                                   val_end+timedelta(days=forecast_horizon)))
+            st.info(f'''Forecast dates:\n 
+                    {val_end+timedelta(days=1)} to 
+                    {val_end+timedelta(days=forecast_horizon)}''', icon = ':dart:')
 
-            future = make_forecast_dataframe(start=train_start, end=val_end+timedelta(days=forecast_horizon))
+            future = make_forecast_dataframe(start=train_start, 
+                                             end=val_end+timedelta(days=forecast_horizon))
                              
     # MODELLING
     # ========================================================================
-    st.sidebar.write('2. Modelling')
+    st.sidebar.markdown('# 2. Modelling')
     # default parameters for target cols
     default_params = {'sessions':{'growth': 'logistic',
               'seasonality_mode': 'multiplicative',
               'changepoint_prior_scale': 15.0,
               'n_changepoints' : 30,
+              'cap' : 2500,
               },
               'purchases_backend_website':{'growth': 'logistic',
               'seasonality_mode': 'multiplicative',
               'changepoint_prior_scale': 15.0,
               'n_changepoints' : 30,
+              'cap' : 30,
               },
               'bookings_ga':{'growth': 'logistic',
               'seasonality_mode': 'multiplicative',
               'changepoint_prior_scale': 15.0,
-              'n_changepoints' : 30.0,
+              'n_changepoints' : 30,
+              'cap' : 30,
               }
               }
     
     params = {}
     with st.sidebar.expander('Model and Growth type'):
-        '''
-        Select type of growth, cap and floor
-    
-        '''
         
         growth_type = st.selectbox('growth',
                                    options=['logistic', 'linear'],
@@ -509,47 +439,28 @@ if __name__ == '__main__':
         
         params['growth'] = growth_type
         if growth_type == 'logistic':
-            use_cap = st.checkbox('Add cap value')
-            if use_cap:
-                cap_type = st.selectbox('Value cap type',
-                                        options=['fixed', 'multiplier'])
-                if cap_type == 'fixed':
-                    cap = st.number_input('Fixed cap value',
-                                          min_value = 0,
-                                          value = 1000)
-                    evals.loc[:, 'cap'] = cap
-                    if make_forecast_future:
-                        future.loc[:,'cap'] = cap
-                elif cap_type == 'multiplier':
-                    cap = st.number_input('Cap multiplier',
-                                          min_value = 1,
-                                          value = 1)
-                    evals.loc[:,'cap'] = evals['y']*cap
-                    if make_forecast_future:
-                        future['cap'] = evals['y']*cap
-                
+            # if logistic growth, cap value is required
+            cap = st.number_input('Enter fixed cap value',
+                                  min_value = 0,
+                                  value = default_params[param])
+            evals.loc[:, 'cap'] = cap
+            # if forecast future, also apply cap to future df
+            if make_forecast_future:
+                future.loc[:,'cap'] = cap
+            
+            # floor is optional
             use_floor = st.checkbox('Add floor value')
             if use_floor:
-                floor_type = st.selectbox('Value floor type',
-                                        options=['fixed', 'multiplier'])
-                if floor_type == 'fixed':
-                    floor = st.number_input('Fixed floor value',
-                                          min_value = 0,
-                                          value = 0)
-                    evals.loc[:, 'floor'] = floor
-                    if make_forecast_future:
-                        future.loc[:,'floor'] = floor
-                elif floor_type == 'multiplier':
-                    floor = st.number_input('Floor multiplier',
-                                          min_value = 0,
-                                          value = 0)
-                    evals.loc[:,'floor'] = evals['y']*floor
-                    if make_forecast_future:
-                        future.loc[:,'floor'] = floor
-                        
-                if evals.y.isnull().sum() > 0.5*len(evals):
-                    st.warning('Evals data contains too many NaN values')
-                    st.write(evals)
+                floor = st.number_input('Enter fixed floor value',
+                                      min_value = 0,
+                                      value = 0)
+                evals.loc[:, 'floor'] = floor
+                if make_forecast_future:
+                    future.loc[:,'floor'] = floor
+            
+            # check viability of cap value
+            if cap <= floor:
+                st.error('Cap value should be greater than floor value')
     
     # CHANGEPOINTS
     # =========================================================================
@@ -565,30 +476,31 @@ if __name__ == '__main__':
                                     max_value=50.0,
                                     value= float(default_params[param]['changepoint_prior_scale']),
                                     step=0.05)
-        changepoint_range = st.number_input('changepoint_prior_scale',
+        changepoint_range = st.number_input('changepoint_range',
                                     min_value=0.05,
                                     max_value=1.0,
                                     value=0.95,
                                     step=0.05)
         
-        
+        # add selected inputs to params dict
         params['n_changepoints'] = n_changepoints
         params['changepoint_prior_scale'] = changepoint_prior_scale
         params['changepoint_range'] = changepoint_range
         
-    
+    # apply params to model
     model = Prophet(**params)  # Input param grid
 
     # SEASONALITIES
     # ========================================================================
     with st.sidebar.expander('Seasonalities'):
-        season_model = st.selectbox('Add Seasonality', 
-                            options = ['auto', 'True', 'False'],
+        season_model = st.selectbox('Add seasonality', 
+                            options = ['Auto', 'True', 'False'],
+                            index = 1,
                             key = 'season_model')
         
-        seasonality_scale_dict = {'sessions': 10,
-                                  'purchases_backend_website': 5,
-                                  'bookings_ga': 5}
+        seasonality_scale_dict = {'sessions': 6,
+                                  'purchases_backend_website': 3,
+                                  'bookings_ga': 3}
         
         if season_model == 'True':
             model.daily_seasonality = 'auto'
@@ -599,6 +511,7 @@ if __name__ == '__main__':
             model.seasonality_mode = seasonality_mode
             
             set_seasonality_prior_scale = st.checkbox('Set seasonality_prior_scale')
+            # add info
             if set_seasonality_prior_scale:
                 seasonality_prior_scale = st.number_input('overall_seasonality_prior_scale',
                                                       min_value= 1.0,
@@ -606,7 +519,7 @@ if __name__ == '__main__':
                                                       value=float(seasonality_scale_dict[param]),
                                                       step = 1.0)
             else:
-                seasonality_prior_scale = 0
+                seasonality_prior_scale = 1
                 
             model.seasonality_prior_scale = seasonality_prior_scale
             
@@ -625,58 +538,64 @@ if __name__ == '__main__':
                                                            max_value=30.0,
                                                            value=8.0,
                                                            step=1.0)
+                # add yearly seasonality to model
                 model.add_seasonality(name='yearly', 
                                       period = 365,
                                       fourier_order = yearly_seasonality_order,
                                       prior_scale = seasonality_prior_scale if set_seasonality_prior_scale else yearly_prior_scale) # add seasonality
             
             monthly_seasonality = st.selectbox('monthly_seasonality', 
-                                          ('auto', False, 'custom'))
-            if monthly_seasonality == 'custom':
+                                          options = ('Auto', 'False', 'Custom'),
+                                          index = 2)
+            if monthly_seasonality == 'Custom':
                 model.monthly_seasonality = False
-                monthly_seasonality_order = st.number_input('monthly seasonality order',
+                monthly_seasonality_order = st.number_input('Monthly seasonality order',
                                                            min_value = 1,
                                                            max_value=30,
                                                            value=9,
                                                            step=1)
                 if set_seasonality_prior_scale is False:
-                    monthly_prior_scale = st.number_input('monthly seasonality prior scale',
+                    monthly_prior_scale = st.number_input('Monthly seasonality prior scale',
                                                            min_value = 1.0,
                                                            max_value=30.0,
                                                            value=8.0,
                                                            step=1.0)
+                # add monthly seasonality to model
                 model.add_seasonality(name='monthly', 
                                       period = 30.4,
                                       fourier_order = monthly_seasonality_order,
                                       prior_scale = seasonality_prior_scale if set_seasonality_prior_scale else monthly_prior_scale) # add seasonality
             
             weekly_seasonality = st.selectbox('weekly_seasonality', 
-                                          ('auto', False, 'custom'))
-            if weekly_seasonality == 'custom':
+                                          ('Auto', 'False', 'Custom'))
+            if weekly_seasonality == 'Custom':
                 model.weekly_seasonality = False
-                weekly_seasonality_order = st.number_input('weekly seasonality order',
+                weekly_seasonality_order = st.number_input('Weekly seasonality order',
                                                            min_value = 1,
                                                            max_value=30,
-                                                           value=3,
+                                                           value=6,
                                                            step=1)
                 if set_seasonality_prior_scale is False:
-                    weekly_prior_scale = st.number_input('weekly seasonality prior scale',
+                    weekly_prior_scale = st.number_input('Weekly seasonality prior scale',
                                                            min_value = 1.0,
                                                            max_value=30.0,
                                                            value=8.0,
                                                            step=1.0)
+                # add weekly seasonality to model
                 model.add_seasonality(name='weekly', 
                                       period = 7,
                                       fourier_order = weekly_seasonality_order,
                                       prior_scale = seasonality_prior_scale if set_seasonality_prior_scale else weekly_prior_scale) # add seasonality
             
         elif season_model == 'auto':
+            # selected 'auto' 
             model.yearly_seasonality = 'auto'
             model.monthly_seasonality = 'auto'
             model.weekly_seasonality = 'auto'
             model.daily_seasonality = 'auto'
         
         else:
+            # selected False - no seasonality
             model.yearly_seasonality = False
             model.monthly_seasonality = False
             model.weekly_seasonality = False
@@ -685,14 +604,16 @@ if __name__ == '__main__':
     # HOLIDAYS
     # =========================================================================
     with st.sidebar.expander('Holidays'):
-        holiday_model = st.checkbox('Add Holidays', 
+        add_holiday = st.checkbox('Add holidays', 
                             value = True,
                             key = 'holiday_model')
-        if holiday_model:
-            # add holidays
+        if add_holiday:
+            # add public holidays
             add_public_holidays = st.checkbox('Public holidays')
             if add_public_holidays:
                 model.add_country_holidays(country_name='PH')
+            
+            # add set_holidays
             add_set_holidays = st.checkbox('Saved holidays')
             if add_set_holidays:
                 fathers_day = pd.DataFrame({
@@ -700,32 +621,43 @@ if __name__ == '__main__':
                     'ds': pd.to_datetime(['2022-06-19']),
                     'lower_window': -21,
                     'upper_window': 3})
-                holidays = fathers_day
-                model.holidays = holidays
+                
+                holidays_set = {'fathers_day': fathers_day}
+                
+                selected_holidays = st.multiselect('Select saved holidays',
+                                                   options=list(holidays_set.keys()),
+                                                   default = list(holidays_set.keys()))
+                
+                model.holidays = pd.concat(selected_holidays)
             
             holiday_scale_dict = {'sessions': 3,
-                                  'purchases_backend_website': 5,
-                                  'bookings_ga': 5}
+                                  'purchases_backend_website': 3,
+                                  'bookings_ga': 3}
             
             holiday_scale = st.number_input('holiday_prior_scale',
                                             min_value = 1.0,
                                             max_value = 30.0,
                                             value = float(holiday_scale_dict[param]),
                                             step = 1.0)
+            # set holiday prior scale
             model.holiday_prior_scale = holiday_scale
             
         else:
+            # no holiday effects
             model.holidays = None
             model.holiday_prior_scale = 0
     
     # REGRESSORS
     # =========================================================================
     with st.sidebar.expander('Regressors'):
+        
         def is_saturday(ds):
+            # check if saturday
             date = pd.to_datetime(ds)
             return ((date.dayofweek + 1) == 6)*1
         
         def is_sunday(ds):
+            # check if sunday
             date = pd.to_datetime(ds)
             return ((date.dayofweek + 1) == 7)*1
         
@@ -750,16 +682,18 @@ if __name__ == '__main__':
             #historicaldf.index = historicaldf.index.strftime('%Y-%m-%d')
             return historicaldf[list(kw_list)].groupby(historicaldf.index.date).mean().fillna(0)
         
-        
+        # add data metrics option
         add_metrics = st.checkbox('Add data metrics',
-                                  value = False)
-        exog_num_cols = {'sessions': ['ctr_fb', 'ctr_ga', 'ad_costs_fb_total', 'ad_costs_ga', 
+                                  value = True)
+        
+        exog_num_cols = {'sessions': ['ctr_fb', 'ctr_ga', 'ctr_total', 'ad_costs_fb_total', 'ad_costs_ga', 'ad_costs_total'
                              'landing_page_views', 'impressions_fb', 'impressions_ga', 'pageviews'],
-                             'purchases_backend_website': ['ctr_fb', 'ctr_ga', 'ad_costs_fb_total', 'ad_costs_ga', 
+                         'purchases_backend_website': ['ctr_fb', 'ctr_ga', 'ctr_total', 'ad_costs_fb_total', 'ad_costs_ga', 'ad_costs_total',
                              'landing_page_views', 'impressions_fb', 'impressions_ga', 'cancellations',
-                             'rejections']}
+                             'rejections'],
+                         'bookings_ga': ['ctr_ga', 'ad_costs_ga', 'impressions_ga']}
         if add_metrics:
-            # Select exogenous variables, including those generated by one hot encoding.
+            # Select traffic metrics available from data.
             
             exogs = st.multiselect('Select data metrics',
                            options = exog_num_cols[param],
@@ -767,35 +701,41 @@ if __name__ == '__main__':
             
             for exog in exogs:
                 evals.loc[:, exog] = data[data.date.isin(evals.ds)][exog].values
-                future.loc[future.ds.isin(evals.ds), exog] = data[data.date.isin(evals.ds)][exog].values
                 model.add_regressor(exog)
+                
+                # if forecast future
+                if make_forecast_future:
+                    future.loc[future.ds.isin(evals.ds), exog] = data[data.date.isin(evals.ds)][exog].values
             
-            if evals.y.isnull().sum() > 0.5*len(evals):
-                st.warning('Evals data contains too many NaN values')
-                st.write(evals)
         
-        add_gtrends = st.checkbox('google trends',
+        add_gtrends = st.checkbox('Add Google trends',
                                   value = False)
         if add_gtrends:
+            # keywords
             kw_list = ['gulong.ph', 'gogulong']
             gtrends_st = st.text_area('Enter google trends keywords',
                                         value = ' '.join(kw_list))
+            # selected keywords
             kw_list = gtrends_st.split(' ')
+            # cannot generate data for dates in forecast horizon
             gtrends = get_gtrend_data(kw_list, evals)
             for g, gtrend in enumerate(gtrends.columns):
                 evals.loc[:,kw_list[g]] = gtrends[gtrend].values
+                future.loc[future.ds.isin(evals.ds), gtrend] = gtrends[gtrends.date.isin(evals.ds)][gtrend].values
                 model.add_regressor(kw_list[g])
-            
-            if evals.y.isnull().sum() > 0.5*len(evals):
-                st.warning('Evals data contains too many NaN values')
-                st.write(evals)
-        
+                
+        # custom regressors (functions applied to dates)
         add_custom_reg = st.checkbox('Add custom regressors',
                                      value = True)
         if add_custom_reg:
             regs = {'is_saturday': evals.ds.apply(is_saturday),
-                        'is_sunday'  : evals.ds.apply(is_sunday)}
+                    'is_sunday'  : evals.ds.apply(is_sunday)}
             
+            if make_forecast_future:
+                regs_future = {'is_saturday': future.ds.apply(is_saturday),
+                               'is_sunday'  : future.ds.apply(is_sunday)}
+            
+            # regressor multiselect
             regs_list = st.multiselect('Select custom regs',
                            options = list(regs.keys()),
                            default = list(regs.keys()))
@@ -804,63 +744,94 @@ if __name__ == '__main__':
                 evals.loc[:, reg] = regs[reg].values
                 model.add_regressor(reg)
             
-            if make_forecast_future:
-                regs_future = {'is_saturday': future.ds.apply(is_saturday),
-                               'is_sunday'  : future.ds.apply(is_sunday)}
-                
-                for reg in regs_list:
+                if make_forecast_future:
                     future.loc[:, reg] = regs_future[reg].values
                 
-                
-            if evals.y.isnull().sum() > 0.5*len(evals):
-                st.warning('Evals data contains too many NaN values')
-                st.write(evals)
         
         if make_forecast_future:
             # input regressor data for future/forecast dates
             # if selected metrics is not None
+            regressor_input = st.empty()
             if add_metrics and len(exogs) > 0:
                 # provide input field
-                for exog in exogs:
-                    exog_data = data[data.date.isin(date_series.ds.values)][exog]
-                    total = st.number_input('Select {} total over forecast period'.format(exog),
-                                           min_value = 0.0, 
-                                           value = exog_data.tail(forecast_horizon).sum(),
-                                           step = 0.01)
-                    future.loc[future.index[-forecast_horizon:],exog] = np.full((forecast_horizon,), round(total/forecast_horizon, 3))
-    
+                with regressor_input.container():
+                    for exog in exogs:
+                        exog_data = data[data.date.isin(date_series.ds.values)][exog]
+                        
+                        data_input = st.selectbox('Data input type:',
+                                             options=['total', 'average'],
+                                             index=0)
+                        if data_input == 'total':
+                            # if data input is total
+                            total = st.number_input('Select {} total over forecast period'.format(exog),
+                                                   min_value = 0.0, 
+                                                   value = exog_data.tail(forecast_horizon).sum(),
+                                                   step = 0.01)
+                            future.loc[future.index[-forecast_horizon:],exog] = np.full((forecast_horizon,), round(total/forecast_horizon, 3))
+                        else:
+                            # if data input is average
+                            average = st.number_input('Select {} average over forecast period'.format(exog),
+                                                   min_value = 0.0, 
+                                                   value = exog_data.tail(forecast_horizon).mean(),
+                                                   step = 0.01)
+                            future.loc[future.index[-forecast_horizon:],exog] = np.full((forecast_horizon,), round(average, 3))
+            else:
+                # delete unused fields
+                regressor_input.empty()
+                
     with st.sidebar.expander('Cleaning'):
         st.write('Missing values')
+        nan_err_container = st.empty()
+        nonan_container = st.empty()
         if make_forecast_future:
             if any(evals.isnull().sum() > 0) or any(future.isnull().sum() > 0):
-                war = st.warning('Found NaN values in data set')
-                col_NaN = evals.columns[evals.isnull().sum() > 0]
-                st.write(col_NaN)
-                clean_method = st.selectbox('Select method to remove NaNs',
-                         options = ['None', 'fill with zero', 'fill with adjcent mean'],
-                         index = 0)
-                if clean_method == 'fill with zero':
-                    evals.fillna(0, inplace=True)
-                    future.fillna(0, inplace=True)
-                elif clean_method == 'fill with adjacent mean':
-                    for col in col_NaN:
-                        evals.loc[:, col] = evals[col].fillna(0.5*(evals[col].shift() + evals[col].shift(-1)))
-                        future.loc[:, col] = future[col].fillna(0.5*(future[col].shift() + future[col].shift(-1)))
+                # remove no NaN info text
+                nonan_container.empty()
+                with nan_err_container.container():
+                    # find columns with NaN values
+                    col_NaN = evals.columns[evals.isnull().sum() > 0]
+                    war = st.error(f'Found NaN values in {col_NaN}')
+                    
+                    clean_method = st.selectbox('Select method to remove NaNs',
+                             options = ['None', 'fill with zero', 'fill with adjcent mean'],
+                             index = 0)
+                    if clean_method == 'fill with zero':
+                        evals.fillna(0, inplace=True)
+                        future.fillna(0, inplace=True)
+                        
+                    elif clean_method == 'fill with adjacent mean':
+                        for col in col_NaN:
+                            evals[col].fillna(0.5*(evals[col].shift() + evals[col].shift(-1)), inplace=True)
+                            future[col].fillna(0.5*(future[col].shift() + future[col].shift(-1)), inplace=True)
+            else:
+                # remove NaN error text
+                nan_err_container.empty()
+                with nonan_container.container():
+                    st.info('Data contains no NaN values.')
 
         else:
+            # no future forecast
             if any(evals.isnull().sum() > 0):
-                st.warning('Found NaN values in data set')
-                col_NaN = evals.columns[evals.isnull().sum() > 0]
-                clean_method = st.selectbox('Select method to remove NaNs',
-                         options = ['None', 'fill with zero', 'fill with adjcent mean'],
-                         index = 0)
-                if clean_method == 'fill with zero':
-                    evals.fillna(0, inplace=True)
-                elif clean_method == 'fill with adjacent mean':
-                    for col in col_NaN:
-                        evals.loc[:, col] = evals[col].fillna(0.5*(evals[col].shift() + evals[col].shift(-1)))
+                with nan_err_container.container():
+                    # find columns with NaN values
+                    col_NaN = evals.columns[evals.isnull().sum() > 0]
+                    st.error(f'Found NaN values in {col_NaN}')
                     
-        
+                    clean_method = st.selectbox('Select method to remove NaNs',
+                             options = ['None', 'fill with zero', 'fill with adjcent mean'],
+                             index = 0)
+                    if clean_method == 'fill with zero':
+                        evals.fillna(0, inplace=True)
+                        
+                    elif clean_method == 'fill with adjacent mean':
+                        for col in col_NaN:
+                            evals[col].fillna(0.5*(evals[col].shift() + evals[col].shift(-1)), inplace=True)
+            else: 
+                # remove NaN error text
+                nan_err_container.empty()
+                with nonan_container.container():
+                    st.info('Data contains no NaN values.')
+                
         st.write('Outliers')
         remove_outliers = st.checkbox('Remove outliers', value = False)
         
@@ -871,7 +842,7 @@ if __name__ == '__main__':
     if start_forecast:
         model.fit(evals)
         if make_forecast_future:
-            st.write(future)
+            st.dataframe(future)
             forecast = model.predict(future)
         else:
             forecast = model.predict(evals)
@@ -881,7 +852,6 @@ if __name__ == '__main__':
         st.header('1. Overview')
         st.plotly_chart(plot_plotly(model, forecast,
                                     uncertainty=True,
-                                    trend=True,
                                     changepoints=True
                                     ))
         
@@ -892,9 +862,9 @@ if __name__ == '__main__':
                          options=['sum', 'mean'],
                          index = 0)
             if view_setting =='sum':
-                st.markdown('***SUM***: {}'.format(round(sum(df_preds['yhat']), 3)))
+                st.markdown('**SUM**: {}'.format(round(sum(df_preds['yhat']), 3)))
             elif view_setting == 'mean':
-                st.markdown('***MEAN***: {}'.format(round(np.mean(df_preds['yhat']), 3)))
+                st.markdown('**MEAN**: {}'.format(round(np.mean(df_preds['yhat']), 3)))
         
         #st.expander('Plot info'):
         st.header('2. Evaluation and Error analysis')
@@ -906,15 +876,15 @@ if __name__ == '__main__':
         
         err1, err2, err3 = st.columns(3)
         with err1:
-            st.markdown('***MAE***')
+            st.markdown('**MAE**')
             st.write(mae)
         
         with err2:
-            st.markdown('***RMSE***')
+            st.markdown('**RMSE**')
             st.write(rmse)
         
         with err3:
-            st.markdown('***MAPE***')
+            st.markdown('**MAPE**')
             st.write(mape)
             
         st.subheader('Forecast vs Actual')
