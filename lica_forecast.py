@@ -401,7 +401,7 @@ if __name__ == '__main__':
                                                step = 1)
             st.info(f'''Forecast dates:\n 
                     {val_end+timedelta(days=1)} to 
-                    {val_end+timedelta(days=forecast_horizon)}''', icon = ':dart:')
+                    {val_end+timedelta(days=forecast_horizon)}''')
 
             future = make_forecast_dataframe(start=train_start, 
                                              end=val_end+timedelta(days=forecast_horizon))
