@@ -875,12 +875,13 @@ if __name__ == '__main__':
                                  value = False)     
     
     if start_forecast:
+        st.dataframe(evals)
         model.fit(evals)
         if make_forecast_future:
-            st.dataframe(future)
+            #st.dataframe(future)
             forecast = model.predict(future)
         else:
-            st.dataframe(evals)
+            #st.dataframe(evals)
             forecast = model.predict(evals)
         
 
