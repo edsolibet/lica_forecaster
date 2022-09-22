@@ -685,8 +685,8 @@ if __name__ == '__main__':
                                     geo='', 
                                     gprop='', 
                                     sleep=0)
-            #historicaldf.index = historicaldf.index.strftime('%Y-%m-%d')
-            return historicaldf[list(kw_list)].groupby(historicaldf.index.date).mean().fillna(0).asfreq('1D').reset_index()
+            historicaldf_grp = historicaldf[list(kw_list)].groupby(historicaldf.index.date).mean()
+            return historicaldf_grp.fillna(0).asfreq('1D').reset_index()
         
         # add data metrics option
         add_metrics = st.checkbox('Add data metrics',
@@ -712,6 +712,24 @@ if __name__ == '__main__':
                 # if forecast future
                 if make_forecast_future:
                     future.loc[future.ds.isin(evals.ds), exog] = data[data.date.isin(evals.ds)][exog].values
+        
+        # gtrends
+        add_gtrends = st.checkbox('Add Google trends',
+                              value = False)
+        if add_gtrends:
+            # keywords
+            kw_list = ['gulong.ph', 'gogulong']
+            gtrends_st = st.text_area('Enter google trends keywords',
+                                        value = ' '.join(kw_list))
+            # selected keywords
+            kw_list = gtrends_st.split(' ')
+            # cannot generate data for dates in forecast horizon
+            gtrends = get_gtrend_data(kw_list, evals)
+            for g, gtrend in enumerate(gtrends.columns[1:]):
+                evals.loc[:,gtrend] = gtrends[gtrends['index'].isin(evals.ds)][gtrend]
+                future.loc[future.ds.isin(evals.ds), gtrend] = gtrends[gtrends['index'].isin(evals.ds)][gtrend]
+                model.add_regressor(gtrend)
+                exogs.append(gtrend)
         
         if make_forecast_future:
             # input regressor data for future/forecast dates
@@ -746,22 +764,7 @@ if __name__ == '__main__':
                 # delete unused fields
                 regressor_input.empty()
             
-            # gtrends
-            add_gtrends = st.checkbox('Add Google trends',
-                                  value = False)
-            if add_gtrends:
-                # keywords
-                kw_list = ['gulong.ph', 'gogulong']
-                gtrends_st = st.text_area('Enter google trends keywords',
-                                            value = ' '.join(kw_list))
-                # selected keywords
-                kw_list = gtrends_st.split(' ')
-                # cannot generate data for dates in forecast horizon
-                gtrends = get_gtrend_data(kw_list, evals)
-                for g, gtrend in enumerate(gtrends.columns[1:]):
-                    evals.loc[:,gtrend] = gtrends[gtrends['index'].isin(evals.ds)][gtrend]
-                    future.loc[future.ds.isin(evals.ds), gtrend] = gtrends[gtrends['index'].isin(evals.ds)][gtrend]
-                    model.add_regressor(gtrend)
+            
             
             
             # custom regressors (functions applied to dates)
