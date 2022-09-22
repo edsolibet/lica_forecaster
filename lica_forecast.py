@@ -802,22 +802,30 @@ if __name__ == '__main__':
             if any(evals.isnull().sum() > 0) or any(future.isnull().sum() > 0):
                 # remove no NaN info text
                 nonan_container.empty()
+                col_NaN = evals.columns[evals.isnull().sum() > 0]
                 with nan_err_container.container():
                     # find columns with NaN values
-                    col_NaN = evals.columns[evals.isnull().sum() > 0]
                     war = st.error(f'Found NaN values in {list(col_NaN)}')
+                
+                
+                clean_method = st.selectbox('Select method to remove NaNs',
+                         options = ['None', 'fill with zero', 'fill with adjcent mean'],
+                         index = 0)
+                if clean_method == 'fill with zero':
+                    evals = evals.fillna(0)
+                    future = future.fillna(0)
                     
-                    clean_method = st.selectbox('Select method to remove NaNs',
-                             options = ['None', 'fill with zero', 'fill with adjcent mean'],
-                             index = 0)
-                    if clean_method == 'fill with zero':
-                        evals = evals.fillna(0)
-                        future = future.fillna(0)
-                        
-                    elif clean_method == 'fill with adjacent mean':
-                        for col in col_NaN:
-                            evals.loc[:, col] = evals.loc[:, col].fillna(0.5*(evals.loc[:, col].ffill() + evals.loc[:, col].bfill()))
-                            future.loc[:, col] = future.loc[:, col].fillna(0.5*(future.loc[:, col].ffill() + future.loc[:, col].bfill()))
+                elif clean_method == 'fill with adjacent mean':
+                    for col in col_NaN:
+                        evals.loc[:, col] = evals.loc[:, col].fillna(0.5*(evals.loc[:, col].ffill() + evals.loc[:, col].bfill()))
+                        future.loc[:, col] = future.loc[:, col].fillna(0.5*(future.loc[:, col].ffill() + future.loc[:, col].bfill()))
+            
+                if all(evals.isnull().sum() == 0):
+                    # remove NaN error text
+                    nan_err_container.empty()
+                    with nonan_container.container():
+                        st.info('Data contains no NaN values.')
+            
             else:
                 # remove NaN error text
                 nan_err_container.empty()
@@ -827,26 +835,32 @@ if __name__ == '__main__':
         else:
             # no future forecast
             if any(evals.isnull().sum() > 0):
+                col_NaN = evals.columns[evals.isnull().sum() > 0] 
                 with nan_err_container.container():
                     # find columns with NaN values
-                    col_NaN = evals.columns[evals.isnull().sum() > 0]
                     st.error(f'Found NaN values in {list(col_NaN)}')
+                
+                clean_method = st.selectbox('Select method to remove NaNs',
+                         options = ['None', 'fill with zero', 'fill with adjcent mean'],
+                         index = 0)
+                if clean_method == 'fill with zero':
+                    evals = evals.fillna(0)
                     
-                    clean_method = st.selectbox('Select method to remove NaNs',
-                             options = ['None', 'fill with zero', 'fill with adjcent mean'],
-                             index = 0)
-                    if clean_method == 'fill with zero':
-                        evals = evals.fillna(0)
-                        
-                    elif clean_method == 'fill with adjacent mean':
-                        for col in col_NaN:
-                            if pd.isna(evals.loc[0, col]) or pd.isna(evals.loc[len(evals)-1, col]):   
-                                evals.loc[:, col] = evals.loc[:, col].fillna(0.5*(evals.loc[:, col].ffill() + evals.loc[:, col].bfill()))
-                                # if first or last value is NaN
-                                evals.loc[:, col] = evals.loc[:, col].bfill().ffill()
-                            else:
-                                evals.loc[:, col] = evals.loc[:, col].fillna(0.5*(evals.loc[:, col].ffill() + evals.loc[:, col].bfill()))
-                                
+                elif clean_method == 'fill with adjacent mean':
+                    for col in col_NaN:
+                        if pd.isna(evals.loc[0, col]) or pd.isna(evals.loc[len(evals)-1, col]):   
+                            evals.loc[:, col] = evals.loc[:, col].fillna(0.5*(evals.loc[:, col].ffill() + evals.loc[:, col].bfill()))
+                            # if first or last value is NaN
+                            evals.loc[:, col] = evals.loc[:, col].bfill().ffill()
+                        else:
+                            evals.loc[:, col] = evals.loc[:, col].fillna(0.5*(evals.loc[:, col].ffill() + evals.loc[:, col].bfill()))
+                
+                if all(evals.isnull().sum() == 0):
+                    # remove NaN error text
+                    nan_err_container.empty()
+                    with nonan_container.container():
+                        st.info('Data contains no NaN values.')
+            
             else: 
                 # remove NaN error text
                 nan_err_container.empty()
