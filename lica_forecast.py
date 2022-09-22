@@ -512,7 +512,8 @@ if __name__ == '__main__':
                                         index = 1)
             model.seasonality_mode = seasonality_mode
             
-            set_seasonality_prior_scale = st.checkbox('Set seasonality_prior_scale')
+            set_seasonality_prior_scale = st.checkbox('Set seasonality_prior_scale',
+                                                      value = True)
             # add info
             if set_seasonality_prior_scale:
                 seasonality_prior_scale = st.number_input('overall_seasonality_prior_scale',
@@ -612,12 +613,14 @@ if __name__ == '__main__':
                             key = 'holiday_model')
         if add_holiday:
             # add public holidays
-            add_public_holidays = st.checkbox('Public holidays')
+            add_public_holidays = st.checkbox('Public holidays',
+                                              value = True)
             if add_public_holidays:
                 model.add_country_holidays(country_name='PH')
             
             # add set_holidays
-            add_set_holidays = st.checkbox('Saved holidays')
+            add_set_holidays = st.checkbox('Saved holidays',
+                                           value = True)
             if add_set_holidays:
                 fathers_day = pd.DataFrame({
                     'holiday': 'fathers_day',
@@ -683,7 +686,7 @@ if __name__ == '__main__':
                                     gprop='', 
                                     sleep=0)
             #historicaldf.index = historicaldf.index.strftime('%Y-%m-%d')
-            return historicaldf[list(kw_list)].groupby(historicaldf.index.date).mean().fillna(0)
+            return historicaldf[list(kw_list)].groupby(historicaldf.index.date).mean().fillna(0).asfreq('1D').reset_index()
         
         # add data metrics option
         add_metrics = st.checkbox('Add data metrics',
@@ -755,10 +758,10 @@ if __name__ == '__main__':
                 kw_list = gtrends_st.split(' ')
                 # cannot generate data for dates in forecast horizon
                 gtrends = get_gtrend_data(kw_list, evals)
-                for g, gtrend in enumerate(gtrends.columns):
-                    evals.loc[:,kw_list[g]] = gtrends[gtrend].values
-                    future.loc[future.ds.isin(evals.ds), gtrend] = gtrends[gtrends.date.isin(evals.ds)][gtrend].values
-                    model.add_regressor(kw_list[g])
+                for g, gtrend in enumerate(gtrends.columns[1:]):
+                    evals.loc[:,gtrend] = gtrends[gtrends['index'].isin(evals.ds)][gtrend]
+                    future.loc[future.ds.isin(evals.ds), gtrend] = gtrends[gtrends['index'].isin(evals.ds)][gtrend]
+                    model.add_regressor(gtrend)
             
             
             # custom regressors (functions applied to dates)
@@ -870,7 +873,7 @@ if __name__ == '__main__':
         
         if make_forecast_future:
             df_preds = forecast.set_index('ds').tail(forecast_horizon)
-            st.dataframe(forecast.tail(forecast_horizon)['yhat'])
+            st.dataframe(df_preds['yhat'])
             view_setting = st.selectbox('View sum or mean',
                          options=['sum', 'mean'],
                          index = 0)
@@ -905,7 +908,7 @@ if __name__ == '__main__':
         st.plotly_chart(truth_vs_forecast)
         
         r2 = round(r2_score(evals.y, forecast.loc[evals.index,'yhat']), 3)
-        st.markdown('***R2 error***: {}'.format(r2))
+        st.markdown('**R2 error**: {}'.format(r2))
         
         
         st.header('3. Impact of components')
