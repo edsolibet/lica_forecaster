@@ -753,7 +753,7 @@ if __name__ == '__main__':
                             # if data input is total
                             total = st.number_input('Select {} total over forecast period'.format(exog),
                                                    min_value = 0.0, 
-                                                   value = sum(exog_data[-int(forecast_horizon):]),
+                                                   value = np.sum(exog_data[-int(forecast_horizon):]),
                                                    step = 0.01)
                             future.loc[future.index[-int(forecast_horizon):],exog] = np.full((int(forecast_horizon),), round(total/forecast_horizon, 3))
                         else:
