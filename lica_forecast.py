@@ -746,7 +746,7 @@ if __name__ == '__main__':
                         # added key to solve DuplicateWidgetID
                         data_input = st.selectbox(exog + ' data input type:',
                                              options=['total', 'average'],
-                                             index=0,
+                                             index=1,
                                              key = exog + '_input')
                         
                         if data_input == 'total':
