@@ -739,7 +739,10 @@ if __name__ == '__main__':
                 # provide input field
                 with regressor_input.container():
                     for exog in exogs:
-                        exog_data = data[data.date.isin(date_series.ds.values)][exog]
+                        if exog in data.columns:
+                            exog_data = data[data.date.isin(date_series.ds.values)][exog]
+                        else:
+                            exog_data = gtrends[exog]
                         # added key to solve DuplicateWidgetID
                         data_input = st.selectbox(exog + ' data input type:',
                                              options=['total', 'average'],
