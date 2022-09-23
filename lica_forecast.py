@@ -319,8 +319,9 @@ def calc_yhat(forecast, coefs, model):
                            index = forecast.index, columns=['ds', 'regressors', 'holiday', 'seasons', 'extra_reg_mult', 'tot', 'yhat'])
     return df_yhat
 
-
-
+def convert_csv(df):
+    # IMPORTANT: Cache the conversion to prevent recomputation on every rerun.
+    return df.to_csv().encode('utf-8')
 
 if __name__ == '__main__':
     st.title('LICA Target Setting and Forecasting App')
@@ -411,19 +412,19 @@ if __name__ == '__main__':
     # default parameters for target cols
     default_params = {'sessions':{'growth': 'logistic',
               'seasonality_mode': 'multiplicative',
-              'changepoint_prior_scale': 15.0,
+              'changepoint_prior_scale': 8.0,
               'n_changepoints' : 30,
               'cap' : 2500.0,
               },
               'purchases_backend_website':{'growth': 'logistic',
               'seasonality_mode': 'multiplicative',
-              'changepoint_prior_scale': 15.0,
+              'changepoint_prior_scale': 8.0,
               'n_changepoints' : 30,
               'cap' : 30.0,
               },
               'bookings_ga':{'growth': 'logistic',
               'seasonality_mode': 'multiplicative',
-              'changepoint_prior_scale': 15.0,
+              'changepoint_prior_scale': 8.0,
               'n_changepoints' : 30,
               'cap' : 30.0,
               }
@@ -894,15 +895,20 @@ if __name__ == '__main__':
         
         if make_forecast_future:
             df_preds = forecast.set_index('ds').tail(forecast_horizon)
-            st.dataframe(df_preds['yhat'])
+            df_preds.loc[:, 'ds'] = pd.to_datetime(df_preds.loc[:, 'ds'], unit='D')
+            st.dataframe(df_preds[['yhat', 'yhat_lower', 'yhat_upper']])
             view_setting = st.selectbox('View sum or mean',
                          options=['sum', 'mean'],
                          index = 0)
             if view_setting =='sum':
-                st.markdown('**SUM**: {}'.format(round(sum(df_preds['yhat']), 3)))
+                st.markdown('**SUM**: {}'.format(df_preds[['yhat', 'yhat_lower', 'yhat_upper']].sum()))
             elif view_setting == 'mean':
-                st.markdown('**MEAN**: {}'.format(round(np.mean(df_preds['yhat']), 3)))
+                st.markdown('**MEAN**: {}'.format(df_preds[['yhat', 'yhat_lower', 'yhat_upper']].mean()))
         
+            st.download_button(label='Get forecast results',
+                               data = convert_csv(df_preds[['ds','yhat', 'yhat_lower', 'yhat_upper']]),
+                               file_name = 'forecast_results.csv')
+            
         #st.expander('Plot info'):
         st.header('2. Evaluation and Error analysis')
         
