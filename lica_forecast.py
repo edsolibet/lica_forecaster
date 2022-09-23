@@ -896,7 +896,7 @@ if __name__ == '__main__':
         if make_forecast_future:
             # get forecasted values
             df_preds = forecast.tail(forecast_horizon)
-            df_preds.loc[:, 'ds'] = pd.to_datetime(df_preds.loc[:, 'ds'], unit='D').strftime('%Y-%m-%d')
+            df_preds.loc[:, 'ds'] = pd.to_datetime(df_preds.loc[:, 'ds'], unit='D').dt.strftime('%Y-%m-%d')
             df_preds = df_preds.set_index('ds')
             st.dataframe(df_preds[['yhat', 'yhat_lower', 'yhat_upper']])
             view_setting = st.selectbox('View sum or mean',
