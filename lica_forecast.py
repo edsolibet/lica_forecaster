@@ -414,7 +414,7 @@ if __name__ == '__main__':
               'seasonality_mode': 'multiplicative',
               'changepoint_prior_scale': 8.0,
               'n_changepoints' : 30,
-              'cap' : 2500.0,
+              'cap' : 2250.0,
               },
               'purchases_backend_website':{'growth': 'logistic',
               'seasonality_mode': 'multiplicative',
@@ -904,10 +904,10 @@ if __name__ == '__main__':
                          index = 0)
             if view_setting =='sum':
                 st.markdown('**SUM**:')
-                st.dataframe(df_preds[['yhat', 'yhat_lower', 'yhat_upper']].sum().rename(columns={0:'total'}))
+                st.dataframe(df_preds[['yhat', 'yhat_lower', 'yhat_upper']].sum().rename('total'))
             elif view_setting == 'mean':
                 st.markdown('**MEAN**:')
-                st.dataframe(df_preds[['yhat', 'yhat_lower', 'yhat_upper']].mean().rename(columns={0:'average'}))
+                st.dataframe(df_preds[['yhat', 'yhat_lower', 'yhat_upper']].mean().rename('average'))
         
             st.download_button(label='Get forecast results',
                                data = convert_csv(df_preds[['yhat', 'yhat_lower', 'yhat_upper']]),
