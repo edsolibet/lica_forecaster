@@ -9,10 +9,8 @@ Created on Thu Sep  1 01:10:34 2022
 # =============================================================================
 import numpy as np
 import pandas as pd
-import seaborn as sns
 from io import BytesIO
 import openpyxl, requests
-import matplotlib.pyplot as plt
 import plotly.graph_objs as go
 from datetime import date, timedelta
 import streamlit as st
@@ -28,7 +26,7 @@ import plotly.graph_objects as go
 from prophet.plot import plot_plotly, plot_components_plotly
 from pytrends.request import TrendReq
 
-import itertools
+from sklearn.ensemble import IsolationForest
 from sklearn.metrics import mean_absolute_error, mean_squared_error, mean_absolute_percentage_error, r2_score
 import warnings
 warnings.filterwarnings(action='ignore', category=UserWarning)
@@ -518,10 +516,10 @@ if __name__ == '__main__':
             # add info
             if set_seasonality_prior_scale:
                 seasonality_prior_scale = st.number_input('overall_seasonality_prior_scale',
-                                                      min_value= 1.0,
-                                                      max_value= 30.0,
+                                                      min_value= 0.01,
+                                                      max_value= 50.0,
                                                       value=float(seasonality_scale_dict[param]),
-                                                      step = 1.0)
+                                                      step = 0.1)
             else:
                 seasonality_prior_scale = 1
                 
@@ -538,10 +536,10 @@ if __name__ == '__main__':
                                                            step=1)
                 if set_seasonality_prior_scale is False:
                     yearly_prior_scale = st.number_input('Yearly seasonality prior scale',
-                                                           min_value = 1.0,
-                                                           max_value=30.0,
-                                                           value=8.0,
-                                                           step=1.0)
+                                                           min_value = 0.05,
+                                                           max_value=50.0,
+                                                           value=6.0,
+                                                           step= 0.1)
                 # add yearly seasonality to model
                 model.add_seasonality(name='yearly', 
                                       period = 365,
@@ -560,10 +558,10 @@ if __name__ == '__main__':
                                                            step=1)
                 if set_seasonality_prior_scale is False:
                     monthly_prior_scale = st.number_input('Monthly seasonality prior scale',
-                                                           min_value = 1.0,
-                                                           max_value=30.0,
-                                                           value=8.0,
-                                                           step=1.0)
+                                                           min_value = 0.05,
+                                                           max_value=50.0,
+                                                           value=6.0,
+                                                           step= 0.1)
                 # add monthly seasonality to model
                 model.add_seasonality(name='monthly', 
                                       period = 30.4,
@@ -582,10 +580,10 @@ if __name__ == '__main__':
                                                            step=1)
                 if set_seasonality_prior_scale is False:
                     weekly_prior_scale = st.number_input('Weekly seasonality prior scale',
-                                                           min_value = 1.0,
-                                                           max_value=30.0,
-                                                           value=8.0,
-                                                           step=1.0)
+                                                           min_value = 0.05,
+                                                           max_value=50.0,
+                                                           value=6.0,
+                                                           step= 0.1)
                 # add weekly seasonality to model
                 model.add_seasonality(name='weekly', 
                                       period = 7,
@@ -870,7 +868,13 @@ if __name__ == '__main__':
                 
         st.write('Outliers')
         remove_outliers = st.checkbox('Remove outliers', value = False)
-        
+        if remove_outliers:
+            outliers_df = evals['y'].to_frame()
+            clf = IsolationForest(n_estimators=100,
+                                  max_samples=30,
+                                  random_state=101).fit(outliers_df['y'].array.reshape(-1,1))
+            outliers_df.loc[:,'outliers'] = clf.predict(outliers_df['y'].array.reshape(-1,1))
+            evals = evals[outliers_df.loc[:,'outliers'] == 1]
     
     start_forecast = st.sidebar.checkbox('Launch forecast',
                                  value = False)     
@@ -887,7 +891,7 @@ if __name__ == '__main__':
         
 
         # plot
-        st.header('1. Overview')
+        st.header('Overview')
         st.plotly_chart(plot_plotly(model, forecast,
                                     uncertainty=True,
                                     changepoints=True
@@ -903,18 +907,16 @@ if __name__ == '__main__':
                          options=['sum', 'mean'],
                          index = 0)
             if view_setting =='sum':
-                st.markdown('**SUM**:')
-                st.dataframe(df_preds[['yhat', 'yhat_lower', 'yhat_upper']].sum().rename('total'))
-            elif view_setting == 'mean':
-                st.markdown('**MEAN**:')
-                st.dataframe(df_preds[['yhat', 'yhat_lower', 'yhat_upper']].mean().rename('average'))
+                st.dataframe(df_preds[['yhat', 'yhat_lower', 'yhat_upper']].sum().rename('total_' + param))
+            elif view_setting == 'mean':    
+                st.dataframe(df_preds[['yhat', 'yhat_lower', 'yhat_upper']].mean().rename('average_' + param))
         
             st.download_button(label='Get forecast results',
                                data = convert_csv(df_preds[['yhat', 'yhat_lower', 'yhat_upper']]),
-                               file_name = 'forecast_results.csv')
+                               file_name = param +'_forecast_results.csv')
             
         #st.expander('Plot info'):
-        st.header('2. Evaluation and Error analysis')
+        st.header('Evaluation and Error analysis')
         
         st.subheader('Global performance')
         mae = round(mean_absolute_error(evals.y, forecast.loc[evals.index,'yhat']), 3)
@@ -942,7 +944,7 @@ if __name__ == '__main__':
         st.markdown('**R2 error**: {}'.format(r2))
         
         
-        st.header('3. Impact of components')
+        st.header('Impact of components')
         st.plotly_chart(plot_components_plotly(
             model,
             forecast,
