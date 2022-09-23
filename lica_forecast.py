@@ -27,6 +27,7 @@ from prophet.plot import plot_plotly, plot_components_plotly
 from pytrends.request import TrendReq
 
 from sklearn.ensemble import IsolationForest
+from sklearn.neighbors import LocalOutlierFactor, KNeighborsClassifier
 from sklearn.metrics import mean_absolute_error, mean_squared_error, mean_absolute_percentage_error, r2_score
 import warnings
 warnings.filterwarnings(action='ignore', category=UserWarning)
@@ -869,27 +870,46 @@ if __name__ == '__main__':
         st.write('Outliers')
         remove_outliers = st.checkbox('Remove outliers', value = False)
         if remove_outliers:
-            estimators = st.number_input('Enter number of estimators',
-                                         min_value = 20,
-                                         value = 100,
-                                         step = 5)
-            max_samples = st.number_input('Enter max_samples',
-                                          min_value = 15,
-                                          value = 60,
-                                          step = 15)
-            
+            method = st.selectbox('Choose method',
+                         options=['KNN', 'LOF', 'Isolation Forest'],
+                         index = 0)
             outliers_df = evals['y'].to_frame()
-            clf = IsolationForest(n_estimators=estimators,
-                                  max_samples=max_samples,
-                                  random_state=101).fit(outliers_df['y'].array.reshape(-1,1))
-            outliers_df.loc[:,'outliers'] = clf.predict(outliers_df['y'].array.reshape(-1,1))
-            evals = evals[outliers_df.loc[:,'outliers'] == 1]
+            
+            if method == 'KNN':
+                neighbors = st.number_input('Enter number of neighbors',
+                                             min_value = 2,
+                                             max_value = 20,
+                                             value = 5,
+                                             step = 1)
+                
+                clf = KNeighborsClassifier(n_neighbors = neighbors).fit(np.arange(len(outliers_df)).reshape(-1,1),
+                                                                        outliers_df['y'].array.reshape(-1,1))
+                
+            elif method == 'LOF':
+                pass
+            else:
+                # Isolation Forest
+                estimators = st.number_input('Enter number of estimators',
+                                             min_value = 20,
+                                             value = 100,
+                                             step = 5)
+                max_samples = st.number_input('Enter max_samples',
+                                              min_value = 15,
+                                              value = 60,
+                                              step = 15)
+            
+                clf = IsolationForest(n_estimators=estimators,
+                                      max_samples=max_samples,
+                                      random_state=101).fit(outliers_df['y'].array.reshape(-1,1))
+            
+            outliers_df.loc[:,'label'] = clf.predict(outliers_df['y'].array.reshape(-1,1))
+            evals = evals[(outliers_df.loc[:,'label'] >= 0) & (outliers_df.loc[:,'label'] <= 1)]
     
     start_forecast = st.sidebar.checkbox('Launch forecast',
                                  value = False)     
     
     if start_forecast:
-        #st.dataframe(evals)
+        st.dataframe(evals)
         model.fit(evals)
         if make_forecast_future:
             #st.dataframe(future)
