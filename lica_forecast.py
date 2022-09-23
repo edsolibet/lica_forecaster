@@ -795,7 +795,7 @@ if __name__ == '__main__':
                 
                 
     with st.sidebar.expander('Cleaning'):
-        st.write('Missing values')
+        #st.write('Missing values')
         nan_err_container = st.empty()
         nonan_container = st.empty()
         if make_forecast_future:
