@@ -894,8 +894,9 @@ if __name__ == '__main__':
                                     ))
         
         if make_forecast_future:
-            df_preds = forecast.set_index('ds').tail(forecast_horizon)
+            df_preds = forecast.tail(forecast_horizon)
             df_preds.loc[:, 'ds'] = pd.to_datetime(df_preds.loc[:, 'ds'], unit='D')
+            df_preds = df_preds.set_index('ds')
             st.dataframe(df_preds[['yhat', 'yhat_lower', 'yhat_upper']])
             view_setting = st.selectbox('View sum or mean',
                          options=['sum', 'mean'],
@@ -906,7 +907,7 @@ if __name__ == '__main__':
                 st.markdown('**MEAN**: {}'.format(df_preds[['yhat', 'yhat_lower', 'yhat_upper']].mean()))
         
             st.download_button(label='Get forecast results',
-                               data = convert_csv(df_preds[['ds','yhat', 'yhat_lower', 'yhat_upper']]),
+                               data = convert_csv(df_preds[['yhat', 'yhat_lower', 'yhat_upper']]),
                                file_name = 'forecast_results.csv')
             
         #st.expander('Plot info'):
