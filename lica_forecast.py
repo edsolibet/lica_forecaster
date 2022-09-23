@@ -884,7 +884,8 @@ if __name__ == '__main__':
                 
                 clf = KNeighborsClassifier(n_neighbors = neighbors).fit(np.arange(len(outliers_df)).reshape(-1,1),
                                                                         outliers_df['y'].array.reshape(-1,1))
-                
+                outliers_df.loc[:,'label'] = clf.predict(outliers_df['y'].array.reshape(-1,1))
+                evals = evals[(outliers_df.loc[:,'label'] == 0)]
             elif method == 'LOF':
                 pass
             else:
@@ -903,13 +904,13 @@ if __name__ == '__main__':
                                       random_state=101).fit(outliers_df['y'].array.reshape(-1,1))
             
             outliers_df.loc[:,'label'] = clf.predict(outliers_df['y'].array.reshape(-1,1))
-            evals = evals[(outliers_df.loc[:,'label'] >= 0) & (outliers_df.loc[:,'label'] <= 1)]
+            evals = evals[outliers_df.loc[:,'label'] == 1]
     
     start_forecast = st.sidebar.checkbox('Launch forecast',
                                  value = False)     
     
     if start_forecast:
-        st.dataframe(evals)
+        #st.dataframe(evals)
         model.fit(evals)
         if make_forecast_future:
             #st.dataframe(future)
