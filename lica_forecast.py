@@ -889,7 +889,7 @@ if __name__ == '__main__':
                                  value = False)     
     
     if start_forecast:
-        st.dataframe(evals)
+        #st.dataframe(evals)
         model.fit(evals)
         if make_forecast_future:
             #st.dataframe(future)
