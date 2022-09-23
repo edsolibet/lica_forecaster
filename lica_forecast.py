@@ -902,9 +902,11 @@ if __name__ == '__main__':
                          options=['sum', 'mean'],
                          index = 0)
             if view_setting =='sum':
-                st.markdown('**SUM**: {}'.format(df_preds[['yhat', 'yhat_lower', 'yhat_upper']].sum()))
+                st.markdown('**SUM**:')
+                st.dataframe(df_preds[['yhat', 'yhat_lower', 'yhat_upper']].sum())
             elif view_setting == 'mean':
-                st.markdown('**MEAN**: {}'.format(df_preds[['yhat', 'yhat_lower', 'yhat_upper']].mean()))
+                st.markdown('**MEAN**:')
+                st.dataframe(df_preds[['yhat', 'yhat_lower', 'yhat_upper']].mean())
         
             st.download_button(label='Get forecast results',
                                data = convert_csv(df_preds[['yhat', 'yhat_lower', 'yhat_upper']]),
