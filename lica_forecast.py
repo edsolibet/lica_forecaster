@@ -869,9 +869,18 @@ if __name__ == '__main__':
         st.write('Outliers')
         remove_outliers = st.checkbox('Remove outliers', value = False)
         if remove_outliers:
+            estimators = st.number_input('Enter number of estimators',
+                                         min_value = 20,
+                                         value = 100,
+                                         step = 5)
+            max_samples = st.number_input('Enter max_samples',
+                                          min_value = 15,
+                                          value = 60,
+                                          step = 15)
+            
             outliers_df = evals['y'].to_frame()
-            clf = IsolationForest(n_estimators=100,
-                                  max_samples=30,
+            clf = IsolationForest(n_estimators=estimators,
+                                  max_samples=max_samples,
                                   random_state=101).fit(outliers_df['y'].array.reshape(-1,1))
             outliers_df.loc[:,'outliers'] = clf.predict(outliers_df['y'].array.reshape(-1,1))
             evals = evals[outliers_df.loc[:,'outliers'] == 1]
