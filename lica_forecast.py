@@ -1070,53 +1070,53 @@ if __name__ == '__main__':
                 if make_forecast_future:
                     future = future[future.y != 0]
                 
-            method = st.selectbox('Choose method',
-                         options=['None', 'KNN', 'LOF', 'Isolation Forest'],
-                         index = 0,
-                         help = tooltips_text['remove_outlier_method'])
+            # method = st.selectbox('Choose method',
+            #              options=['None', 'KNN', 'LOF', 'Isolation Forest'],
+            #              index = 0,
+            #              help = tooltips_text['remove_outlier_method'])
             
             
-            outliers_df = evals['y'].to_frame()
-            if method == 'KNN':
-                neighbors = st.number_input('Enter number of neighbors',
-                                             min_value = 2,
-                                             max_value = 20,
-                                             value = 5,
-                                             step = 1,
-                                             help = tooltips_text['KNN_neighbors'])
+            # outliers_df = evals['y'].to_frame()
+            # if method == 'KNN':
+            #     neighbors = st.number_input('Enter number of neighbors',
+            #                                  min_value = 2,
+            #                                  max_value = 20,
+            #                                  value = 5,
+            #                                  step = 1,
+            #                                  help = tooltips_text['KNN_neighbors'])
                 
-                clf = KNeighborsClassifier(n_neighbors = int(neighbors)).fit(np.arange(len(outliers_df)).reshape(-1,1),
-                                                                        outliers_df['y'].array.reshape(-1,1))
-                outliers_df.loc[:,'label'] = clf.predict(outliers_df['y'].array.reshape(-1,1))
-                evals = evals[(outliers_df.loc[:,'label'] == 0)]
+            #     clf = KNeighborsClassifier(n_neighbors = int(neighbors)).fit(np.arange(len(outliers_df)).reshape(-1,1),
+            #                                                             outliers_df['y'].array.reshape(-1,1))
+            #     outliers_df.loc[:,'label'] = clf.predict(outliers_df['y'].array.reshape(-1,1))
+            #     evals = evals[(outliers_df.loc[:,'label'] == 0)]
                 
             
-            elif method == 'LOF':
-                pass
+            # elif method == 'LOF':
+            #     pass
             
-            elif method == 'Isolation Forest':
-                # Isolation Forest
-                estimators = st.number_input('Enter number of estimators',
-                                             min_value = 20,
-                                             value = 100,
-                                             step = 5,
-                                             help = tooltips_text['IF_estimators'])
+            # elif method == 'Isolation Forest':
+            #     # Isolation Forest
+            #     estimators = st.number_input('Enter number of estimators',
+            #                                  min_value = 20,
+            #                                  value = 100,
+            #                                  step = 5,
+            #                                  help = tooltips_text['IF_estimators'])
                 
-                max_samples = st.number_input('Enter max_samples',
-                                              min_value = 15,
-                                              value = 60,
-                                              step = 15,
-                                              help = tooltips_text['IF_max_samples'])
+            #     max_samples = st.number_input('Enter max_samples',
+            #                                   min_value = 15,
+            #                                   value = 60,
+            #                                   step = 15,
+            #                                   help = tooltips_text['IF_max_samples'])
             
-                clf = IsolationForest(n_estimators=estimators,
-                                      max_samples=max_samples,
-                                      random_state=101).fit(outliers_df['y'].array.reshape(-1,1))
+            #     clf = IsolationForest(n_estimators=estimators,
+            #                           max_samples=max_samples,
+            #                           random_state=101).fit(outliers_df['y'].array.reshape(-1,1))
             
-                outliers_df.loc[:,'label'] = clf.predict(outliers_df['y'].array.reshape(-1,1))
-                evals = evals[outliers_df.loc[:,'label'] == 1]
+            #     outliers_df.loc[:,'label'] = clf.predict(outliers_df['y'].array.reshape(-1,1))
+            #     evals = evals[outliers_df.loc[:,'label'] == 1]
                 
-            else:
-                pass
+            # else:
+            #     pass
             
     start_forecast = st.sidebar.checkbox('Launch forecast',
                                  value = False)     
