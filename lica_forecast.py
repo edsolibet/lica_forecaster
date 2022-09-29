@@ -887,10 +887,10 @@ if __name__ == '__main__':
             with gtrends_container.container():
                 kw_list = ['gulong.ph', 'gogulong']
                 gtrends_st = st.text_area('Enter google trends keywords',
-                                            value = ' '.join(kw_list),
+                                            value = ', '.join(kw_list),
                                             help = tooltips_text['gtrend_kw'])
                 # selected keywords
-                kw_list = gtrends_st.split(' ')
+                kw_list = [kw.strip() for kw in gtrends_st.split(',')]
                 # cannot generate data for dates in forecast horizon
                 gtrends = get_gtrend_data(kw_list, evals)
                 for g, gtrend in enumerate(gtrends.columns[1:]):
@@ -974,6 +974,8 @@ if __name__ == '__main__':
                 custom_reg_container.empty()
     
     with st.sidebar.expander('Cleaning'):
+        # NaN CLEANING
+        # =====================================================================
         st.write('Missing values')
         # create containers for when NaNs or no NaNs present
         nan_err_container = st.empty()
@@ -988,7 +990,7 @@ if __name__ == '__main__':
                     war = st.error(f'Found NaN values in {list(col_NaN)}')
                 
                     clean_method = st.selectbox('Select method to remove NaNs',
-                             options = ['fill with zero', 'fill with adjcent mean'],
+                             options = ['fill with zero', 'fill with adjcent mean', 'remove rows with NaNs'],
                              index = 0,
                              help = tooltips_text['nan_clean_method'])
                     if clean_method == 'fill with zero':
@@ -999,6 +1001,9 @@ if __name__ == '__main__':
                         for col in col_NaN:
                             evals.loc[:, col] = evals.loc[:, col].fillna(0.5*(evals.loc[:, col].ffill() + evals.loc[:, col].bfill()))
                             future.loc[:, col] = future.loc[:, col].fillna(0.5*(future.loc[:, col].ffill() + future.loc[:, col].bfill()))
+                    elif clean_method == 'remove rows with NaNs':
+                        evals = evals[evals.notnull()]
+                        future = future[future.notnull()]
             
                 if all(evals.isnull().sum() == 0):
                     # remove NaN error text
@@ -1021,7 +1026,7 @@ if __name__ == '__main__':
                     st.error(f'Found NaN values in {list(col_NaN)}')
                 
                     clean_method = st.selectbox('Select method to remove NaNs',
-                             options = ['fill with zero', 'fill with adjcent mean'],
+                             options = ['fill with zero', 'fill with adjcent mean', 'remove rows with NaNs'],
                              index = 0,
                              help = tooltips_text['nan_clean_method'])
                     
@@ -1036,6 +1041,8 @@ if __name__ == '__main__':
                                 evals.loc[:, col] = evals.loc[:, col].bfill().ffill()
                             else:
                                 evals.loc[:, col] = evals.loc[:, col].fillna(0.5*(evals.loc[:, col].ffill() + evals.loc[:, col].bfill()))
+                    elif clean_method == 'remove rows with NaNs':
+                        evals = evals[evals.notnull()]
                 
                 if all(evals.isnull().sum() == 0):
                     # remove NaN error text
@@ -1049,7 +1056,8 @@ if __name__ == '__main__':
                 with nonan_container.container():
                     st.info('Data contains no NaN values.')
             
-        
+        # OUTLIERS
+        # =====================================================================
         st.write('Outliers')
         remove_outliers = st.checkbox('Remove outliers', value = False,
                                       help = tooltips_text['outliers'])
@@ -1122,7 +1130,8 @@ if __name__ == '__main__':
         plot_regressors(evals, selected_reg)
     
     if start_forecast:
-        st.dataframe(future)
+        # show dataframe for debugging
+        # st.dataframe(future)
         model.fit(evals)
         if make_forecast_future:
             #st.dataframe(future)
@@ -1200,7 +1209,7 @@ if __name__ == '__main__':
         st.subheader('Forecast vs Actual')
         truth_vs_forecast = plot_forecast_vs_actual_scatter(evals, forecast)
         st.plotly_chart(truth_vs_forecast)
-        
+        st.markdown(tooltips_text['forecast_vs_actual'])
         r2 = round(r2_score(evals.y, forecast.loc[evals.index,'yhat']), 3)
         st.markdown('**<p style="font-size: 20px">R<sup>2</sup> error**: {} </p>'.format(r2), unsafe_allow_html = True)
         with st.expander('Pearson correlation coefficient'):
@@ -1208,6 +1217,7 @@ if __name__ == '__main__':
         
         
         st.header('Impact of components')
+        st.markdown(tooltips_text['impact_of_components'])
         st.plotly_chart(plot_components_plotly(
             model,
             forecast,

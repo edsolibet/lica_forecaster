@@ -58,7 +58,8 @@ tooltips_text = {'platform_select': 'Platform data to use',
                  'data_input_average': 'Input the average value of the regressor over the selected forecast dates. Each day will have the same value.',
                  'add_custom_regressors': 'Include saved regressors (based on dates).',
                  'nan_clean_method': '''**fill with zero**: Replace NaNs with 0 (zero).
-                     **fill with adjacent mean**: Fill in NaNs with average of before and after values.''',
+                     **fill with adjacent mean**: Fill in NaNs with average of before and after values.
+                     **remove rows with NaNs**: Removes rows with NaNs from the dataset.''',
                  'outliers': 'Outliers are data points which are outside the normal range with respect to the neighboring data or as a whole.',
                  'transform': '**Moving average**: Average of data over a certain range of observations or window.',
                  'window': 'How many observations we have to take for the calculation of the moving average.',
@@ -75,4 +76,7 @@ tooltips_text = {'platform_select': 'Platform data to use',
                     A value of > 0.9 suggestions a **strong**, **positive** association between two variables.
                     ''',
                  'overview': '''This plot shows the model fitting on the training data and forecasted values (if any). Black points are the actual/transformed values.
-                 Thick blue line is the forecast value, light blue bands are the upper and lower bounds of the forecasted value. Vertical orange lines are the locations of the changepoints.'''}
+                 Thick blue line is the forecast value, light blue bands are the upper and lower bounds of the forecasted value. Vertical orange lines are the locations of the changepoints.''',
+                 'forecast_vs_actual': '''This plot shows the forecasted values in relation to the actual values. Each point corresponds to a single date from the dataset. 
+                 The red line indicates the optimal result for each point. ''',
+                 'impact_of_components': 'Each plot shows how the corresponding seasonality, regressor, or holiday affects the predicted result with respect to if the component was not present in the model.'}
