@@ -1227,6 +1227,7 @@ if __name__ == '__main__':
             forecast,
             uncertainty=True))
         
-        st.write(regressor_coefficients(model))
+        if len(regressors) > 0:
+            st.dataframe(regressor_coefficients(model))
    
     
