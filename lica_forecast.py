@@ -440,33 +440,33 @@ if __name__ == '__main__':
                                         help = tooltips_text['training_start'])
         with tcol2:
             train_end = st.date_input('Training data end date',
-                                        value = pd.to_datetime('2022-07-31'),
-                                        min_value= pd.to_datetime('2022-04-01'),
+                                        value = date_series.max().date(),
+                                        min_value= train_start + timedelta(days=30),
                                         max_value=date_series.max().date(),
                                         help = tooltips_text['training_end'])
         if train_start >= train_end:
             st.error('Train_end should come after train_start.')
         
-
-        st.markdown('### Validation dataset')
-        vcol1, vcol2 = st.columns(2)
-        with vcol1:
-            val_start = st.date_input('val_start date',
-                                        value = train_end + timedelta(days=1),
-                                        min_value=train_end + timedelta(days=1),
-                                        max_value=date_series.max().date())
-        with vcol2:
-            val_end = st.date_input('val_end date',
-                                        value = date_series.max().date(),
-                                        min_value= val_start + timedelta(days=1),
-                                        max_value=date_series.max().date())
-        if val_start >= val_end:
-            st.error('Val_end should come after val_start.')
+        
+        # st.markdown('### Validation dataset')
+        # vcol1, vcol2 = st.columns(2)
+        # with vcol1:
+        #     val_start = st.date_input('val_start date',
+        #                                 value = train_end + timedelta(days=1),
+        #                                 min_value=train_end + timedelta(days=1),
+        #                                 max_value=date_series.max().date())
+        # with vcol2:
+        #     val_end = st.date_input('val_end date',
+        #                                 value = date_series.max().date(),
+        #                                 min_value= val_start + timedelta(days=1),
+        #                                 max_value=date_series.max().date())
+        # if val_start >= val_end:
+        #     st.error('Val_end should come after val_start.')
     
         # create training dataframe
         # 
-        if pd.Timestamp(val_end) <= data.date.max():
-            date_series = make_forecast_dataframe(train_start, val_end)
+        if pd.Timestamp(train_end) <= data.date.max():
+            date_series = make_forecast_dataframe(train_start, train_end)
             param_series = data[data.date.isin(date_series.ds.values)][param].reset_index()
             evals = pd.concat([date_series, param_series], axis=1).rename(columns={0: 'ds',
                                                                                    param:'y'}).drop('index', axis=1)
@@ -489,11 +489,11 @@ if __name__ == '__main__':
                                                value = 15,
                                                step = 1,
                                                help = tooltips_text['forecast_horizon'])
-            st.info(f'''Forecast dates:\n 
-                    {val_end+timedelta(days=1)} to {val_end+timedelta(days=forecast_horizon)}''')
-
+            
             future = make_forecast_dataframe(start=train_start, 
-                                             end=val_end+timedelta(days=forecast_horizon))
+                                             end=train_end+timedelta(days=forecast_horizon))
+            st.info(f'''Forecast dates:\n 
+                    {train_end+timedelta(days=1)} to {future.ds.dt.date.max()}''')
                              
     # MODELLING
     # ========================================================================
@@ -530,10 +530,11 @@ if __name__ == '__main__':
         params['growth'] = growth_type
         if growth_type == 'logistic':
             # if logistic growth, cap value is required
+            # cap value is round up to nearest 500
             cap = st.number_input('Fixed cap value',
                                   min_value = 0.0,
                                   max_value = None,
-                                  value = default_params[param]['cap'],
+                                  value = np.ceil(max(data[param])/500)*500,
                                   step = 0.01,
                                   help = tooltips_text['cap_value'])
             evals.loc[:, 'cap'] = cap
@@ -576,6 +577,7 @@ if __name__ == '__main__':
                                        help = tooltips_text['n_changepoints'])
             
             params['n_changepoints'] = n_changepoints
+            params.pop('changepoints', None)
             
         elif changepoint_select == 'Manual':
             changepoints = st.multiselect('Select dates to place changepoints',
@@ -583,6 +585,7 @@ if __name__ == '__main__':
                                           default = [evals.ds.dt.date.min(), evals.ds.dt.date.max()],
                                           help = tooltips_text['changepoints'])
             params['changepoints'] = changepoints
+            params.pop('n_changepoints', None)
             
         changepoint_prior_scale = st.number_input('changepoint_prior_scale',
                                     min_value=0.05,
@@ -902,13 +905,14 @@ if __name__ == '__main__':
                                                    value = float(np.nansum(exog_data[-int(forecast_horizon):])),
                                                    step = 0.01,
                                                    help = tooltips_text['data_input_total'])
+                            st.write()
                             future.loc[future.index[-int(forecast_horizon):],regressor] = np.full((int(forecast_horizon),), round(total/forecast_horizon, 3))
                         else:
                             # if data input is average
                             average = st.number_input('Select {} average over forecast period'.format(regressor),
-                                                   min_value = 0.0, 
+                                                   min_value = 0.00, 
                                                    value = np.nanmean(exog_data[-int(forecast_horizon):]),
-                                                   step = 0.01,
+                                                   step = 0.010,
                                                    help = tooltips_text['data_input_average'])
                             future.loc[future.index[-int(forecast_horizon):],regressor] = np.full((int(forecast_horizon),), round(average, 3))
             else:
@@ -1085,7 +1089,7 @@ if __name__ == '__main__':
                 
         st.write('Transformation')
         transform = st.selectbox('Data transformation method',
-                     options = ['None', 'Moving average'],
+                     options = ['None', 'Moving average', 'Logarithm'],
                      index = 0,
                      help = tooltips_text['transform'])
         
@@ -1098,7 +1102,10 @@ if __name__ == '__main__':
                                help = tooltips_text['window'])
             
             evals['y'] = evals['y'].rolling(window = window, min_periods = 1).mean().bfill()
-    
+        
+        if transform == 'Logarithm':
+            evals['y'] = evals['y'].apply(np.log)
+            
     start_forecast = st.sidebar.checkbox('Launch forecast',
                                  value = False)     
     
@@ -1112,7 +1119,7 @@ if __name__ == '__main__':
         plot_regressors(evals, selected_reg)
     
     if start_forecast:
-        #st.dataframe(evals)
+        st.dataframe(future)
         model.fit(evals)
         if make_forecast_future:
             #st.dataframe(future)
