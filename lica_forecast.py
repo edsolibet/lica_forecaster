@@ -1067,8 +1067,9 @@ if __name__ == '__main__':
                                        value = False)
             if remove_zeros:
                 evals = evals[evals.y != 0]
+                if make_forecast_future:
+                    future = future[future.y != 0]
                 
-            
             method = st.selectbox('Choose method',
                          options=['None', 'KNN', 'LOF', 'Isolation Forest'],
                          index = 0,
@@ -1212,7 +1213,7 @@ if __name__ == '__main__':
         st.markdown(tooltips_text['forecast_vs_actual'])
         r2 = round(r2_score(evals.y, forecast.loc[evals.index,'yhat']), 3)
         #st.markdown('**<p style="font-size: 20px">R<sup>2</sup>** </p>', unsafe_allow_html = True)
-        st.metric(label = st.markdown('**<p style="font-size: 20px">R<sup>2</sup>** </p>', unsafe_allow_html = True),
+        st.metric(label = 'Pearson Coefficient',
                   value = r2,
                   help = tooltips_text['pearson_coeff'])
         #with st.expander('Pearson correlation coefficient'):
