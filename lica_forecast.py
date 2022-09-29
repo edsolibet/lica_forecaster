@@ -495,143 +495,8 @@ if __name__ == '__main__':
             st.info(f'''Forecast dates:\n 
                     {train_end+timedelta(days=1)} to {future.ds.dt.date.max()}''')
     
-    with st.sidebar.expander('Cleaning'):
-        st.write('Missing values')
-        # create containers for when NaNs or no NaNs present
-        nan_err_container = st.empty()
-        nonan_container = st.empty()
-        if make_forecast_future:
-            if any(evals.isnull().sum() > 0) or any(future.isnull().sum() > 0):
-                # remove no NaN info text
-                nonan_container.empty()
-                col_NaN = evals.columns[evals.isnull().sum() > 0]
-                with nan_err_container.container():
-                    # find columns with NaN values
-                    war = st.error(f'Found NaN values in {list(col_NaN)}')
+    with st.sidebar.expander('Transformation'):
                 
-                    clean_method = st.selectbox('Select method to remove NaNs',
-                             options = ['fill with zero', 'fill with adjcent mean'],
-                             index = 0,
-                             help = tooltips_text['nan_clean_method'])
-                    if clean_method == 'fill with zero':
-                        evals = evals.fillna(0)
-                        future = future.fillna(0)
-                        
-                    elif clean_method == 'fill with adjacent mean':
-                        for col in col_NaN:
-                            evals.loc[:, col] = evals.loc[:, col].fillna(0.5*(evals.loc[:, col].ffill() + evals.loc[:, col].bfill()))
-                            future.loc[:, col] = future.loc[:, col].fillna(0.5*(future.loc[:, col].ffill() + future.loc[:, col].bfill()))
-            
-                if all(evals.isnull().sum() == 0):
-                    # remove NaN error text
-                    nan_err_container.empty()
-                    with nonan_container.container():
-                        st.info('Data contains no NaN values.')
-            
-            else:
-                # remove NaN error text
-                nan_err_container.empty()
-                with nonan_container.container():
-                    st.info('Data contains no NaN values.')
-
-        else:
-            # no future forecast
-            if any(evals.isnull().sum() > 0):
-                col_NaN = evals.columns[evals.isnull().sum() > 0] 
-                with nan_err_container.container():
-                    # find columns with NaN values
-                    st.error(f'Found NaN values in {list(col_NaN)}')
-                
-                    clean_method = st.selectbox('Select method to remove NaNs',
-                             options = ['fill with zero', 'fill with adjcent mean'],
-                             index = 0,
-                             help = tooltips_text['nan_clean_method'])
-                    
-                    if clean_method == 'fill with zero':
-                        evals = evals.fillna(0)
-                        
-                    elif clean_method == 'fill with adjacent mean':
-                        for col in col_NaN:
-                            if pd.isna(evals.loc[0, col]) or pd.isna(evals.loc[len(evals)-1, col]):   
-                                evals.loc[:, col] = evals.loc[:, col].fillna(0.5*(evals.loc[:, col].ffill() + evals.loc[:, col].bfill()))
-                                # if first or last value is NaN
-                                evals.loc[:, col] = evals.loc[:, col].bfill().ffill()
-                            else:
-                                evals.loc[:, col] = evals.loc[:, col].fillna(0.5*(evals.loc[:, col].ffill() + evals.loc[:, col].bfill()))
-                
-                if all(evals.isnull().sum() == 0):
-                    # remove NaN error text
-                    nan_err_container.empty()
-                    with nonan_container.container():
-                        st.info('Data contains no NaN values.')
-            
-            else: 
-                # remove NaN error text
-                nan_err_container.empty()
-                with nonan_container.container():
-                    st.info('Data contains no NaN values.')
-            
-        
-        st.write('Outliers')
-        remove_outliers = st.checkbox('Remove outliers', value = False,
-                                      help = tooltips_text['outliers'])
-        if remove_outliers:
-            # option to remove datapoints with value = 0
-            remove_zeros = st.checkbox('Remove zero datapoints', 
-                                       value = False)
-            if remove_zeros:
-                evals = evals[evals.y != 0]
-                
-            
-            method = st.selectbox('Choose method',
-                         options=['None', 'KNN', 'LOF', 'Isolation Forest'],
-                         index = 0,
-                         help = tooltips_text['remove_outlier_method'])
-            
-            
-            outliers_df = evals['y'].to_frame()
-            if method == 'KNN':
-                neighbors = st.number_input('Enter number of neighbors',
-                                             min_value = 2,
-                                             max_value = 20,
-                                             value = 5,
-                                             step = 1,
-                                             help = tooltips_text['KNN_neighbors'])
-                
-                clf = KNeighborsClassifier(n_neighbors = int(neighbors)).fit(np.arange(len(outliers_df)).reshape(-1,1),
-                                                                        outliers_df['y'].array.reshape(-1,1))
-                outliers_df.loc[:,'label'] = clf.predict(outliers_df['y'].array.reshape(-1,1))
-                evals = evals[(outliers_df.loc[:,'label'] == 0)]
-                
-            
-            elif method == 'LOF':
-                pass
-            
-            elif method == 'Isolation Forest':
-                # Isolation Forest
-                estimators = st.number_input('Enter number of estimators',
-                                             min_value = 20,
-                                             value = 100,
-                                             step = 5,
-                                             help = tooltips_text['IF_estimators'])
-                
-                max_samples = st.number_input('Enter max_samples',
-                                              min_value = 15,
-                                              value = 60,
-                                              step = 15,
-                                              help = tooltips_text['IF_max_samples'])
-            
-                clf = IsolationForest(n_estimators=estimators,
-                                      max_samples=max_samples,
-                                      random_state=101).fit(outliers_df['y'].array.reshape(-1,1))
-            
-                outliers_df.loc[:,'label'] = clf.predict(outliers_df['y'].array.reshape(-1,1))
-                evals = evals[outliers_df.loc[:,'label'] == 1]
-                
-            else:
-                pass
-                
-        st.write('Transformation')
         transform = st.selectbox('Data transformation method',
                      options = ['None', 'Moving average', 'Logarithm'],
                      index = 0,
@@ -1032,25 +897,9 @@ if __name__ == '__main__':
                     evals.loc[:,gtrend] = gtrends[gtrends['index'].isin(evals.ds)][gtrend]
                     model.add_regressor(gtrend)
                     regressors.append(gtrend)
-                    # check presence of NaN values
-                    if evals.loc[:, gtrend].isnull().sum() > 0:
-                        if clean_method == 'fill with zero':
-                            evals.loc[:, gtrend] = evals.loc[:, gtrend].fillna(0)
-                        elif clean_method == 'fill with adjacent mean':
-                            evals.loc[:, gtrend] = evals.loc[:, gtrend].fillna(0.5*(evals.loc[:, gtrend].ffill() + evals.loc[:, gtrend].bfill()))
-                        else:
-                            continue
                     # only update future df if make_future_forecast
                     if make_forecast_future:
                         future.loc[future.ds.isin(evals.ds), gtrend] = gtrends[gtrends['index'].isin(evals.ds)][gtrend]
-                        if future.loc[:, gtrend].isnull().sum() > 0:
-                            if clean_method == 'fill with zero':
-                                future.loc[future.ds.isin(evals.ds), gtrend] = future.loc[future.ds.isin(evals.ds), gtrend].fillna(0)
-                            elif clean_method == 'fill with adjacent mean':
-                                future_ds = future.ds.isin(evals.ds)
-                                future.loc[future_ds, gtrend] = future.loc[future_ds, gtrend].fillna(0.5*(future.loc[future_ds, gtrend].ffill() + future.loc[future_ds, gtrend].bfill()))
-                            else:
-                                continue
                     
         
         if make_forecast_future:
@@ -1123,7 +972,142 @@ if __name__ == '__main__':
                             future.loc[:, reg] = regs_future[reg].values
             else:
                 custom_reg_container.empty()
+    
+    with st.sidebar.expander('Cleaning'):
+        st.write('Missing values')
+        # create containers for when NaNs or no NaNs present
+        nan_err_container = st.empty()
+        nonan_container = st.empty()
+        if make_forecast_future:
+            if any(evals.isnull().sum() > 0) or any(future.isnull().sum() > 0):
+                # remove no NaN info text
+                nonan_container.empty()
+                col_NaN = evals.columns[evals.isnull().sum() > 0]
+                with nan_err_container.container():
+                    # find columns with NaN values
+                    war = st.error(f'Found NaN values in {list(col_NaN)}')
                 
+                    clean_method = st.selectbox('Select method to remove NaNs',
+                             options = ['fill with zero', 'fill with adjcent mean'],
+                             index = 0,
+                             help = tooltips_text['nan_clean_method'])
+                    if clean_method == 'fill with zero':
+                        evals = evals.fillna(0)
+                        future = future.fillna(0)
+                        
+                    elif clean_method == 'fill with adjacent mean':
+                        for col in col_NaN:
+                            evals.loc[:, col] = evals.loc[:, col].fillna(0.5*(evals.loc[:, col].ffill() + evals.loc[:, col].bfill()))
+                            future.loc[:, col] = future.loc[:, col].fillna(0.5*(future.loc[:, col].ffill() + future.loc[:, col].bfill()))
+            
+                if all(evals.isnull().sum() == 0):
+                    # remove NaN error text
+                    nan_err_container.empty()
+                    with nonan_container.container():
+                        st.info('Data contains no NaN values.')
+            
+            else:
+                # remove NaN error text
+                nan_err_container.empty()
+                with nonan_container.container():
+                    st.info('Data contains no NaN values.')
+
+        else:
+            # no future forecast
+            if any(evals.isnull().sum() > 0):
+                col_NaN = evals.columns[evals.isnull().sum() > 0] 
+                with nan_err_container.container():
+                    # find columns with NaN values
+                    st.error(f'Found NaN values in {list(col_NaN)}')
+                
+                    clean_method = st.selectbox('Select method to remove NaNs',
+                             options = ['fill with zero', 'fill with adjcent mean'],
+                             index = 0,
+                             help = tooltips_text['nan_clean_method'])
+                    
+                    if clean_method == 'fill with zero':
+                        evals = evals.fillna(0)
+                        
+                    elif clean_method == 'fill with adjacent mean':
+                        for col in col_NaN:
+                            if pd.isna(evals.loc[0, col]) or pd.isna(evals.loc[len(evals)-1, col]):   
+                                evals.loc[:, col] = evals.loc[:, col].fillna(0.5*(evals.loc[:, col].ffill() + evals.loc[:, col].bfill()))
+                                # if first or last value is NaN
+                                evals.loc[:, col] = evals.loc[:, col].bfill().ffill()
+                            else:
+                                evals.loc[:, col] = evals.loc[:, col].fillna(0.5*(evals.loc[:, col].ffill() + evals.loc[:, col].bfill()))
+                
+                if all(evals.isnull().sum() == 0):
+                    # remove NaN error text
+                    nan_err_container.empty()
+                    with nonan_container.container():
+                        st.info('Data contains no NaN values.')
+            
+            else: 
+                # remove NaN error text
+                nan_err_container.empty()
+                with nonan_container.container():
+                    st.info('Data contains no NaN values.')
+            
+        
+        st.write('Outliers')
+        remove_outliers = st.checkbox('Remove outliers', value = False,
+                                      help = tooltips_text['outliers'])
+        if remove_outliers:
+            # option to remove datapoints with value = 0
+            remove_zeros = st.checkbox('Remove zero datapoints', 
+                                       value = False)
+            if remove_zeros:
+                evals = evals[evals.y != 0]
+                
+            
+            method = st.selectbox('Choose method',
+                         options=['None', 'KNN', 'LOF', 'Isolation Forest'],
+                         index = 0,
+                         help = tooltips_text['remove_outlier_method'])
+            
+            
+            outliers_df = evals['y'].to_frame()
+            if method == 'KNN':
+                neighbors = st.number_input('Enter number of neighbors',
+                                             min_value = 2,
+                                             max_value = 20,
+                                             value = 5,
+                                             step = 1,
+                                             help = tooltips_text['KNN_neighbors'])
+                
+                clf = KNeighborsClassifier(n_neighbors = int(neighbors)).fit(np.arange(len(outliers_df)).reshape(-1,1),
+                                                                        outliers_df['y'].array.reshape(-1,1))
+                outliers_df.loc[:,'label'] = clf.predict(outliers_df['y'].array.reshape(-1,1))
+                evals = evals[(outliers_df.loc[:,'label'] == 0)]
+                
+            
+            elif method == 'LOF':
+                pass
+            
+            elif method == 'Isolation Forest':
+                # Isolation Forest
+                estimators = st.number_input('Enter number of estimators',
+                                             min_value = 20,
+                                             value = 100,
+                                             step = 5,
+                                             help = tooltips_text['IF_estimators'])
+                
+                max_samples = st.number_input('Enter max_samples',
+                                              min_value = 15,
+                                              value = 60,
+                                              step = 15,
+                                              help = tooltips_text['IF_max_samples'])
+            
+                clf = IsolationForest(n_estimators=estimators,
+                                      max_samples=max_samples,
+                                      random_state=101).fit(outliers_df['y'].array.reshape(-1,1))
+            
+                outliers_df.loc[:,'label'] = clf.predict(outliers_df['y'].array.reshape(-1,1))
+                evals = evals[outliers_df.loc[:,'label'] == 1]
+                
+            else:
+                pass
             
     start_forecast = st.sidebar.checkbox('Launch forecast',
                                  value = False)     
