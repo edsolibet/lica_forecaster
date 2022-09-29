@@ -1163,7 +1163,7 @@ if __name__ == '__main__':
             with fcast_col1:
                 
                 cols = ['yhat', 'yhat_lower', 'yhat_upper']
-                cols.extend(regressors)
+                # cols.extend(regressors)
                 st.dataframe(df_preds[cols])
                 
                 st.download_button(label='Export forecast results',
@@ -1211,9 +1211,12 @@ if __name__ == '__main__':
         st.plotly_chart(truth_vs_forecast)
         st.markdown(tooltips_text['forecast_vs_actual'])
         r2 = round(r2_score(evals.y, forecast.loc[evals.index,'yhat']), 3)
-        st.markdown('**<p style="font-size: 20px">R<sup>2</sup> error**: {} </p>'.format(r2), unsafe_allow_html = True)
-        with st.expander('Pearson correlation coefficient'):
-            st.markdown(tooltips_text['pearson_coeff'], unsafe_allow_html = True)
+        #st.markdown('**<p style="font-size: 20px">R<sup>2</sup> error**: {} </p>'.format(r2), unsafe_allow_html = True)
+        st.metric('<p style="font-size: 20px">R<sup>2</sup> error**</p>',
+                  value = r2,
+                  help = tooltips_text['pearson_coeff'])
+        #with st.expander('Pearson correlation coefficient'):
+        #    st.markdown(tooltips_text['pearson_coeff'], unsafe_allow_html = True)
         
         
         st.header('Impact of components')
