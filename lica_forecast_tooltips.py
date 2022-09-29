@@ -73,5 +73,6 @@ tooltips_text = {'platform_select': 'Platform data to use',
                  'mape': 'Mean Absolute Percentage Error; measures accuracy in terms of percentage. MAPE < 25% indicates an acceptable forecast.',
                  'pearson_coeff': '''Pearson correlation coefficient (R<sup>2</sup>)  measures the strength of relationship between two variables.
                     A value of > 0.9 suggestions a **strong**, **positive** association between two variables.
-                    '''
-                 }
+                    ''',
+                 'overview': '''This plot shows the model fitting on the training data and forecasted values (if any). Black points are the actual/transformed values.
+                 Thick blue line is the forecast value, light blue bands are the upper and lower bounds of the forecasted value. Vertical orange lines are the locations of the changepoints.'''}

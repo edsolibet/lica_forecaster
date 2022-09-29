@@ -1030,9 +1030,28 @@ if __name__ == '__main__':
                 gtrends = get_gtrend_data(kw_list, evals)
                 for g, gtrend in enumerate(gtrends.columns[1:]):
                     evals.loc[:,gtrend] = gtrends[gtrends['index'].isin(evals.ds)][gtrend]
-                    future.loc[future.ds.isin(evals.ds), gtrend] = gtrends[gtrends['index'].isin(evals.ds)][gtrend]
                     model.add_regressor(gtrend)
                     regressors.append(gtrend)
+                    # check presence of NaN values
+                    if evals.loc[:, gtrend].isnull().sum() > 0:
+                        if clean_method == 'fill with zero':
+                            evals.loc[:, gtrend] = evals.loc[:, gtrend].fillna(0)
+                        elif clean_method == 'fill with adjacent mean':
+                            evals.loc[:, gtrend] = evals.loc[:, gtrend].fillna(0.5*(evals.loc[:, gtrend].ffill() + evals.loc[:, gtrend].bfill()))
+                        else:
+                            continue
+                    # only update future df if make_future_forecast
+                    if make_forecast_future:
+                        future.loc[future.ds.isin(evals.ds), gtrend] = gtrends[gtrends['index'].isin(evals.ds)][gtrend]
+                        if future.loc[:, gtrend].isnull().sum() > 0:
+                            if clean_method == 'fill with zero':
+                                future.loc[future.ds.isin(evals.ds), gtrend] = future.loc[future.ds.isin(evals.ds), gtrend].fillna(0)
+                            elif clean_method == 'fill with adjacent mean':
+                                future_ds = future.ds.isin(evals.ds)
+                                future.loc[future_ds, gtrend] = future.loc[future_ds, gtrend].fillna(0.5*(future.loc[future_ds, gtrend].ffill() + future.loc[future_ds, gtrend].bfill()))
+                            else:
+                                continue
+                    
         
         if make_forecast_future:
             # input regressor data for future/forecast dates
@@ -1131,6 +1150,7 @@ if __name__ == '__main__':
 
         # plot
         st.header('Overview')
+        st.markdown(tooltips_text['overview'])
         st.plotly_chart(plot_plotly(model, forecast,
                                     uncertainty=True,
                                     changepoints=True,
