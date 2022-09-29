@@ -1211,8 +1211,8 @@ if __name__ == '__main__':
         st.plotly_chart(truth_vs_forecast)
         st.markdown(tooltips_text['forecast_vs_actual'])
         r2 = round(r2_score(evals.y, forecast.loc[evals.index,'yhat']), 3)
-        #st.markdown('**<p style="font-size: 20px">R<sup>2</sup> error**: {} </p>'.format(r2), unsafe_allow_html = True)
-        st.metric('<p style="font-size: 20px">R<sup>2</sup> error**</p>',
+        st.markdown('**<p style="font-size: 20px">R<sup>2</sup> error** </p>', unsafe_allow_html = True)
+        st.metric('',
                   value = r2,
                   help = tooltips_text['pearson_coeff'])
         #with st.expander('Pearson correlation coefficient'):
