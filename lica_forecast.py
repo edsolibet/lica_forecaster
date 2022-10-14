@@ -14,21 +14,21 @@ import openpyxl, requests
 import plotly.graph_objs as go
 from datetime import date, timedelta
 import streamlit as st
+from collections import defaultdict
 
 # Modelling and Forecasting
 # =============================================================================
 from prophet import Prophet
-from prophet.diagnostics import cross_validation
+#from prophet.diagnostics import cross_validation
 from prophet.diagnostics import performance_metrics
 from prophet.utilities import regressor_coefficients
 import plotly.express as px
-import plotly.graph_objects as go
 from prophet.plot import plot_plotly, plot_components_plotly
 from pytrends.request import TrendReq
 from lica_forecast_tooltips import tooltips_text
 
-from sklearn.ensemble import IsolationForest
-from sklearn.neighbors import LocalOutlierFactor, KNeighborsClassifier
+#from sklearn.ensemble import IsolationForest
+#from sklearn.neighbors import LocalOutlierFactor, KNeighborsClassifier
 from sklearn.metrics import mean_absolute_error, mean_squared_error, mean_absolute_percentage_error, r2_score
 import warnings
 warnings.filterwarnings(action='ignore', category=UserWarning)
@@ -402,7 +402,9 @@ def convert_csv(df):
     # IMPORTANT: Cache the conversion to prevent recomputation on every rerun.
     return df.to_csv().encode('utf-8')
 
-
+def remove_neg_val(val):
+    val = val if val > 0 else 0
+    return val
 
 # PROGRAM MAIN FLOW
 if __name__ == '__main__':
@@ -422,7 +424,7 @@ if __name__ == '__main__':
                                 index=0,
                                 help = tooltips_text['date_column'])
         
-        platform_data = {'Gulong.ph': ('sessions', 'purchases_backend_website'),
+        platform_data = {'Gulong.ph': ('sessions', 'purchases_backend_website', 'product_adds_to_cart'),
                  'Mechanigo.ph': ('sessions', 'bookings_ga')}
         # target column
         param = st.selectbox('Target column:', platform_data[platform],
@@ -536,6 +538,12 @@ if __name__ == '__main__':
               'changepoint_prior_scale': 8.0,
               'n_changepoints' : 30,
               'cap' : 30.0,
+              },
+              'product_adds_to_cart':{'growth': 'logistic',
+              'seasonality_mode': 'multiplicative',
+              'changepoint_prior_scale': 8.0,
+              'n_changepoints' : 30,
+              'cap' : 500.0,
               }
               }
     
@@ -804,7 +812,8 @@ if __name__ == '__main__':
         else:
             # no holiday effects
             model.holidays = None
-            model.holiday_prior_scale = 0
+            holiday_scale = 3.0
+            model.holiday_prior_scale = holiday_scale
     
     # REGRESSORS
     # =========================================================================
@@ -851,7 +860,7 @@ if __name__ == '__main__':
                              'landing_page_views', 'impressions_fb', 'impressions_ga', 'pageviews'],
                          'purchases_backend_website': ['ctr_fb', 'ctr_ga', 'ctr_total', 'ad_costs_fb_total', 'ad_costs_ga', 'ad_costs_total',
                              'landing_page_views', 'impressions_fb', 'impressions_ga', 'cancellations',
-                             'rejections'],
+                             'rejections', 'product_adds_to_cart'],
                          'bookings_ga': ['ctr_ga', 'ad_costs_ga', 'impressions_ga']}
         
         regressors = list()
@@ -908,36 +917,48 @@ if __name__ == '__main__':
             regressor_input = st.empty()
             if add_metrics and len(regressors) > 0:
                 # provide input field
+                regressor_prior_scale = defaultdict(lambda: holiday_scale)
                 with regressor_input.container():
                     for regressor in regressors:
                         if regressor in data.columns:
                             exog_data = data[data.date.isin(date_series.ds.values)][regressor]
                         else:
                             exog_data = gtrends[regressor]
-                        # added key to solve DuplicateWidgetID
-                        data_input = st.selectbox(regressor + ' data input type:',
-                                             options=['total', 'average'],
-                                             index=1,
-                                             key = regressor + '_input',
-                                             help = tooltips_text['data_input_type'])
+                            
+                        col_input, col_val = st.columns(2)
+                        with col_input:
+                            # added key to solve DuplicateWidgetID
+                            data_input = st.selectbox(regressor + ' data input type:',
+                                                 options=['total', 'average'],
+                                                 index=1,
+                                                 key = regressor + '_input',
+                                                 help = tooltips_text['data_input_type'])
                         
-                        if data_input == 'total':
-                            # if data input is total
-                            total = st.number_input('Select {} total over forecast period'.format(regressor),
-                                                   min_value = 0.0, 
-                                                   value = float(np.nansum(exog_data[-int(forecast_horizon):])),
-                                                   step = 0.01,
-                                                   help = tooltips_text['data_input_total'])
-                            st.write()
-                            future.loc[future.index[-int(forecast_horizon):],regressor] = np.full((int(forecast_horizon),), round(total/forecast_horizon, 3))
-                        else:
-                            # if data input is average
-                            average = st.number_input('Select {} average over forecast period'.format(regressor),
-                                                   min_value = 0.00, 
-                                                   value = np.nanmean(exog_data[-int(forecast_horizon):]),
-                                                   step = 0.010,
-                                                   help = tooltips_text['data_input_average'])
-                            future.loc[future.index[-int(forecast_horizon):],regressor] = np.full((int(forecast_horizon),), round(average, 3))
+                        with col_val:
+                            if data_input == 'total':
+                                # if data input is total
+                                total = st.number_input('{} total'.format(regressor),
+                                                       min_value = 0.0, 
+                                                       value = float(np.nansum(exog_data[-int(forecast_horizon):])),
+                                                       step = 0.01,
+                                                       help = tooltips_text['data_input_total'])
+                                future.loc[future.index[-int(forecast_horizon):],regressor] = np.full((int(forecast_horizon),), round(total/forecast_horizon, 3))
+                            else:
+                                # if data input is average
+                                average = st.number_input('{} average'.format(regressor),
+                                                       min_value = 0.00, 
+                                                       value = np.nanmean(exog_data[-int(forecast_horizon):]),
+                                                       step = 0.010,
+                                                       help = tooltips_text['data_input_average'])
+                                future.loc[future.index[-int(forecast_horizon):],regressor] = np.full((int(forecast_horizon),), round(average, 3))
+            
+                            # specify each regressor prior_scale
+                            reg_prior_scale = st.slider('{} prior scale'.format(regressor),
+                                                      min_value = 0.0,
+                                                      max_value = 20.0,
+                                                      value = holiday_scale,
+                                                      step = 0.5)
+                            regressor_prior_scale[regressor] = reg_prior_scale
             else:
                 # delete unused fields
                 regressor_input.empty()
@@ -966,7 +987,7 @@ if __name__ == '__main__':
                     
                     for reg in regs_list:
                         evals.loc[:, reg] = regs[reg].values
-                        model.add_regressor(reg)
+                        model.add_regressor(reg, prior_scale = regressor_prior_scale[reg])
                     
                         if make_forecast_future:
                             future.loc[:, reg] = regs_future[reg].values
@@ -1062,13 +1083,19 @@ if __name__ == '__main__':
         remove_outliers = st.checkbox('Remove outliers', value = False,
                                       help = tooltips_text['outliers'])
         if remove_outliers:
-            # option to remove datapoints with value = 0
-            remove_zeros = st.checkbox('Remove zero datapoints', 
+            # option to remove datapoints with value < 0
+            remove_NaNs = st.checkbox('Remove NaN datapoints',
                                        value = False)
-            if remove_zeros:
-                evals = evals[evals.y != 0]
-                if make_forecast_future:
-                    future = future[future.y != 0]
+            
+            remove_neg = st.checkbox('Remove negative datapoints', 
+                                       value = False)
+            if remove_neg:
+                evals.loc[:,'y'] = evals.apply(lambda x: x['y'] if x['y'] > 0 else 0, axis=1)
+            if remove_NaNs:
+                evals = evals.fillna(0)
+        else:
+            remove_neg = 0
+            remove_NaNs = 0
                 
             # method = st.selectbox('Choose method',
             #              options=['None', 'KNN', 'LOF', 'Isolation Forest'],
@@ -1141,6 +1168,12 @@ if __name__ == '__main__':
             #st.dataframe(evals)
             forecast = model.predict(evals)
         
+        if remove_neg:
+            forecast['yhat'] = forecast.apply(lambda x: remove_neg_val(x['yhat']), axis=1)
+            forecast['yhat_lower'] = forecast.apply(lambda x: remove_neg_val(x['yhat_lower']), axis=1)
+            forecast['yhat_upper'] = forecast.apply(lambda x: remove_neg_val(x['yhat_upper']), axis=1)
+        else:
+            pass
 
         # plot
         st.header('Overview')
